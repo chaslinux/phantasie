@@ -2,16 +2,21 @@
 
 import pygame
 
+from phantasie import palette
+from phantasie.menu import TitleMenu
+
 
 class Game:
-    """Manage the main game window and application loop."""
+    """Manage the game window and application loop."""
 
-    WIDTH = 960
-    HEIGHT = 640
+    LOGICAL_WIDTH = 320
+    LOGICAL_HEIGHT = 200
+    SCALE = 3
+
+    WIDTH = LOGICAL_WIDTH * SCALE
+    HEIGHT = LOGICAL_HEIGHT * SCALE
+
     FPS = 60
-
-    BACKGROUND_COLOR = (20, 24, 36)
-    TEXT_COLOR = (230, 220, 190)
 
     def __init__(self) -> None:
         """Initialize the game."""
@@ -21,13 +26,19 @@ class Game:
 
         self.screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
 
-        self.clock = pygame.time.Clock()
-        self.font = pygame.font.Font(None, 48)
+        # Draw at the logical resolution.
+        self.canvas = pygame.Surface((self.LOGICAL_WIDTH, self.LOGICAL_HEIGHT))
 
+        self.clock = pygame.time.Clock()
         self.running = True
 
+        self.menu = TitleMenu()
+        self.current_screen = "title"
+
+        self._render()
+
     def handle_events(self) -> None:
-        """Process keyboard, mouse, and window events."""
+        """Process keyboard and window events."""
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
@@ -36,31 +47,56 @@ class Game:
                 if event.key == pygame.K_ESCAPE:
                     self.running = False
 
+                elif self.current_screen == "title":
+                    if event.key in (
+                        pygame.K_UP,
+                        pygame.K_w,
+                    ):
+                        self.menu.move_selection(-1)
+
+                    elif event.key in (
+                        pygame.K_DOWN,
+                        pygame.K_s,
+                    ):
+                        self.menu.move_selection(1)
+
+                    elif event.key in (
+                        pygame.K_RETURN,
+                        pygame.K_SPACE,
+                    ):
+                        action = self.menu.activate()
+
+                        if action == "quit":
+                            self.running = False
+
     def update(self, dt: float) -> None:
         """Update game state.
 
         Args:
             dt: Time elapsed since the previous frame, in seconds.
         """
-        # Game mechanics will be updated here.
-        # For example: movement, combat, and animations.
+        # Future gameplay systems will update here.
         _ = dt
+
+    def _render(self) -> None:
+        """Render the current screen to the logical canvas."""
+        if self.current_screen == "title":
+            self.menu.render(self.canvas)
+        else:
+            self.canvas.fill(palette.BACKGROUND)
+
+        # Scale without smoothing to preserve crisp pixel edges.
+        pygame.transform.scale(
+            self.canvas,
+            self.screen.get_size(),
+            self.screen,
+        )
+
+        pygame.display.flip()
 
     def render(self) -> None:
         """Draw the current frame."""
-        self.screen.fill(self.BACKGROUND_COLOR)
-
-        title = self.font.render(
-            "PHANTASIE III",
-            True,
-            self.TEXT_COLOR,
-        )
-
-        title_rect = title.get_rect(center=(self.WIDTH // 2, self.HEIGHT // 2))
-
-        self.screen.blit(title, title_rect)
-
-        pygame.display.flip()
+        self._render()
 
     def run(self) -> None:
         """Run the main game loop."""
