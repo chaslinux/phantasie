@@ -2,8 +2,9 @@
 
 import pygame
 
-from phantasie import palette
-from phantasie.menu import TitleMenu
+from phantasie.screen_manager import ScreenManager
+from phantasie.screens.placeholder import PlaceholderScreen
+from phantasie.screens.title import TitleScreen
 
 
 class Game:
@@ -26,66 +27,69 @@ class Game:
 
         self.screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
 
-        # Draw at the logical resolution.
         self.canvas = pygame.Surface((self.LOGICAL_WIDTH, self.LOGICAL_HEIGHT))
 
         self.clock = pygame.time.Clock()
         self.running = True
 
-        self.menu = TitleMenu()
-        self.current_screen = "title"
+        # Register the available screens.
+        self.screen_manager = ScreenManager()
 
+        self.title_screen = TitleScreen()
+
+        self.screen_manager.register(
+            "title",
+            self.title_screen,
+        )
+
+        self.screen_manager.register(
+            "new_game",
+            PlaceholderScreen(
+                title="CHARACTER CREATION",
+                message="Character creation is coming soon.",
+            ),
+        )
+
+        self.screen_manager.register(
+            "options",
+            PlaceholderScreen(
+                title="OPTIONS",
+                message="Options are coming soon.",
+            ),
+        )
+
+        # Start at the title screen.
+        self.screen_manager.switch_to("title")
+
+        # Render the initial frame.
         self._render()
 
     def handle_events(self) -> None:
-        """Process keyboard and window events."""
+        """Process Pygame events."""
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
+            else:
+                self.screen_manager.handle_event(event)
 
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    self.running = False
-
-                elif self.current_screen == "title":
-                    if event.key in (
-                        pygame.K_UP,
-                        pygame.K_w,
-                    ):
-                        self.menu.move_selection(-1)
-
-                    elif event.key in (
-                        pygame.K_DOWN,
-                        pygame.K_s,
-                    ):
-                        self.menu.move_selection(1)
-
-                    elif event.key in (
-                        pygame.K_RETURN,
-                        pygame.K_SPACE,
-                    ):
-                        action = self.menu.activate()
-
-                        if action == "quit":
-                            self.running = False
+            if self.screen_manager.quit_requested:
+                self.running = False
 
     def update(self, dt: float) -> None:
-        """Update game state.
+        """Update the active screen.
 
         Args:
             dt: Time elapsed since the previous frame, in seconds.
         """
-        # Future gameplay systems will update here.
-        _ = dt
+        self.screen_manager.update(dt)
+
+        if self.screen_manager.quit_requested:
+            self.running = False
 
     def _render(self) -> None:
-        """Render the current screen to the logical canvas."""
-        if self.current_screen == "title":
-            self.menu.render(self.canvas)
-        else:
-            self.canvas.fill(palette.BACKGROUND)
+        """Render the active screen to the logical canvas."""
+        self.screen_manager.render(self.canvas)
 
-        # Scale without smoothing to preserve crisp pixel edges.
         pygame.transform.scale(
             self.canvas,
             self.screen.get_size(),
