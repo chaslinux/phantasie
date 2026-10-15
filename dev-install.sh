@@ -117,20 +117,6 @@ echo
 echo "Install development dependencies later with:"
 echo "  python -m pip install -r requirements-dev.txt"
 
-Save the file with Ctrl+O, press Enter, and exit with Ctrl+X.
-2. Run the installer
-bash
-
-cd ~/Code/phantasie
-chmod +x dev-install.sh
-./dev-install.sh
-
-The installer will request your password if sudo needs authentication. It will install system dependencies and Python packages, then create the initial project structure.
-3. Verify the result
-
-After it completes, run:
-bash
-
 cd ~/Code/phantasie
 source .venv/bin/activate
 python -c "import pygame; print(pygame.version.ver)"
