@@ -79,7 +79,7 @@ class TitleMenu:
         surface.blit(title, title_rect)
 
         # Menu options.
-        menu_y = 87
+        menu_y = 77
         line_height = 17
 
         for index, item in enumerate(self.ITEMS):
@@ -111,7 +111,7 @@ class TitleMenu:
         )
 
         status_rect = status.get_rect(
-            center=(width // 2, height - 22),
+            center=(width // 2, height - 25),
         )
 
         surface.blit(status, status_rect)
