@@ -2,7 +2,7 @@
 
 import pygame
 
-from phantasie.characters.models import Character
+from phantasie.characters.models import Character, Party
 from phantasie.screen_manager import ScreenManager
 from phantasie.screens.character_creation import CharacterCreationScreen
 from phantasie.screens.placeholder import PlaceholderScreen
@@ -34,6 +34,7 @@ class Game:
         self.clock = pygame.time.Clock()
         self.running = True
         self.character: Character | None = None
+        self.party = Party()
 
         # Register the available screens.
         self.screen_manager = ScreenManager()
@@ -119,4 +120,5 @@ class Game:
     def _accept_character(self, character: Character) -> None:
         """Store a confirmed character and report success on the title screen."""
         self.character = character
+        self.party.add_member(character)
         self.title_screen.menu.status_message = f"Created {character.name}!"

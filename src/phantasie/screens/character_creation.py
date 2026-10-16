@@ -100,6 +100,12 @@ class CharacterCreationScreen(BaseScreen):
 
     def handle_event(self, event: pygame.event.Event) -> None:
         """Handle keyboard input."""
+        if event.type == pygame.TEXTINPUT:
+            if self.field_index == 0 and len(self.name) < 16:
+                self.name += event.text
+                self.message = ""
+            return
+
         if event.type != pygame.KEYDOWN:
             return
 

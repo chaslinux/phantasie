@@ -64,3 +64,25 @@ class Character:
     race: Race
     profession: Profession
     attributes: Attributes
+
+
+class Party:
+    """Maintain an ordered collection of player characters."""
+
+    def __init__(self) -> None:
+        """Initialize an empty party."""
+        self._members: list[Character] = []
+
+    @property
+    def members(self) -> tuple[Character, ...]:
+        """Return party members in their current order."""
+        return tuple(self._members)
+
+    @property
+    def member_count(self) -> int:
+        """Return the number of characters in the party."""
+        return len(self._members)
+
+    def add_member(self, character: Character) -> None:
+        """Add a character to the end of the party."""
+        self._members.append(character)

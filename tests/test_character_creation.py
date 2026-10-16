@@ -20,8 +20,11 @@ def game() -> Game:
     pygame.quit()
 
 
-def press_key(game: Game, key: int, unicode: str = "") -> None:
+def press_key(game: Game, key: int, unicode: str | None = None) -> None:
     """Send a keyboard event to the active screen."""
+    if unicode is None:
+        unicode = chr(key) if pygame.K_a <= key <= pygame.K_z else ""
+
     event = pygame.event.Event(
         pygame.KEYDOWN,
         key=key,
@@ -100,6 +103,8 @@ def test_confirmed_character_is_stored(game: Game) -> None:
     assert game.character.name == "Ada"
     assert game.character.race is Race.HUMAN
     assert game.character.profession is Profession.FIGHTER
+    assert game.party.member_count == 1
+    assert game.party.members == (game.character,)
 
 
 def test_escape_cancels_character_creation(game: Game) -> None:
@@ -108,3 +113,32 @@ def test_escape_cancels_character_creation(game: Game) -> None:
 
     assert game.screen_manager.current_screen_name == "title"
     assert game.character is None
+    assert game.party.member_count == 0
+
+
+def test_multiple_characters_can_be_added_to_party(game: Game) -> None:
+    for name in ("Ada", "Borin"):
+        press_key(game, pygame.K_RETURN)
+
+        screen = game.screen_manager.current_screen
+        assert isinstance(screen, CharacterCreationScreen)
+
+        # Clear any name retained from the previous character.
+        for _ in range(len(screen.name)):
+            press_key(game, pygame.K_BACKSPACE)
+
+        for character in name:
+            event = pygame.event.Event(
+                pygame.TEXTINPUT,
+                text=character,
+            )
+            game.screen_manager.handle_event(event)
+
+        press_key(game, pygame.K_RETURN)
+
+    assert game.party.member_count == 2
+    assert [character.name for character in game.party.members] == [
+        "Ada",
+        "Borin",
+    ]
+    assert game.character is game.party.members[-1]
