@@ -1,149 +1,226 @@
-# Phantasie III for Linux — Next Steps
+# Phantasie III - Next Steps
 
-## 1. Project Overview
+## Current Status
 
-We are developing a playable Linux implementation of *Phantasie III: The Wrath of Nikademus*, inspired by the original Commodore 64 release.
+The project has a working foundation for an RPG inspired by Phantasie III.
 
-- Repository: https://github.com/chaslinux/phantasie
-- Language: Python 3.10+
-- Graphics and input: Pygame
-- Target platform: Debian and Ubuntu Linux
-- Logical resolution: 320 × 200
-- Display scaling: 3× (960 × 600)
-- Graphics palette: Sweetie 16
-- Testing: pytest
-- Linting and formatting: Ruff
-- Static type checking: mypy
+Implemented features:
 
-Prioritize a coherent, playable RPG that preserves recognizable Phantasie III mechanics. Historical accuracy is desirable where practical, but deliberate simplifications are acceptable when documented.
+- Pygame application initialization and main loop.
+- Title screen and menu navigation.
+- Screen manager for switching between screens.
+- Character creation.
+- Character names, races, professions, and attributes.
+- Character attribute validation and generation.
+- Party management with support for multiple characters.
+- Party screen with character selection and scrolling.
+- Exploration map with walls, open tiles, and an event tile.
+- Cardinal movement using the arrow keys or WASD.
+- Collision detection preventing movement through walls.
+- Map boundary validation.
+- Persistent exploration position.
+- Separate party state for the active adventure.
+- Exploration screen integrated with the screen manager.
+- Basic exploration messages and event handling.
 
-## 2. Current Implementation
+The project currently has 88 automated tests passing.
 
-### Application and Interface
+Code quality checks:
 
-- Pygame application loop and scaled rendering.
-- Sweetie 16 palette.
-- Keyboard-controlled title menu.
-- Screen manager and screen transitions.
-- Placeholder options screen.
-- Title, character creation, and party screens.
-- Keyboard navigation and screen instructions.
+- Ruff linting passes.
+- Ruff formatting checks pass.
+- Mypy type checking passes.
+- Git whitespace checks pass.
 
-### Characters and Party
+The game launches successfully. Pygame may display an AVX2 performance warning, but it does not prevent the game from running.
 
-- Character data models for races, professions, attributes, and characters.
-- Attribute generation and validation.
-- Character creation with name, race, profession, and generated attributes.
-- Character recruitment into the party.
-- Sequential creation of multiple characters.
-- Party model that preserves member order.
-- Party roster display and member selection.
-- Roster navigation for larger parties.
+## Development Approach
 
-### Tests and Documentation
+Continue building the game in small, testable increments.
 
-- Automated tests for the game, characters, character creation, party model, party screen, menus, screen management, and transitions.
-- `docs/CHARACTER_GENERATION.md` documents character generation.
-- `docs/ASSETS.md` documents asset conventions.
+Guidelines:
 
-## 3. Immediate Next Milestone: Exploration
+- Keep game logic separate from Pygame rendering and input handling.
+- Write automated tests for new functionality.
+- Run the complete test suite after integrating each feature.
+- Run Ruff, formatting checks, and Mypy before committing.
+- Keep changes focused on one feature at a time.
+- Commit working features to Git before beginning the next major feature.
+- Push completed commits to GitHub.
+- Update this document as the project evolves.
 
-The basic character and party foundation is in place. The next priority is to let the player take the party into a simple game world.
+## Next Feature: Random Encounters
 
-- [ ] Add an exploration screen.
-- [ ] Create a small test map using placeholder graphics.
-- [ ] Implement player movement and map boundaries.
-- [ ] Track the party's position in the exploration area.
-- [ ] Add at least one encounter or interactive event.
-- [ ] Preserve party and character state across screen transitions.
-- [ ] Add automated tests for movement, boundaries, and exploration state.
+### Goal
 
-### Initial Gameplay Loop
+Introduce monsters and random encounters during exploration.
 
-1. Create one or more characters.
-2. View the party.
-3. Enter an exploration area.
-4. Move around the map.
-5. Trigger an encounter or event.
-6. Resolve the encounter.
-7. Return to exploration with party state intact.
+The first implementation should establish the encounter system without implementing full combat.
 
-Keep the first map small. Focus on a working gameplay loop rather than a complete world or finished artwork.
+### Step 1: Monster Data Models
 
-## 4. Combat
+Create the data structures needed to represent monsters.
 
-After exploration works, implement a minimal turn-based combat system.
+Initially, monsters should have:
 
-- [ ] Define combat state and combatants.
-- [ ] Introduce one enemy type.
-- [ ] Implement character and enemy attacks.
-- [ ] Add hit points and damage calculations.
-- [ ] Handle victory and defeat.
-- [ ] Return to exploration after combat.
-- [ ] Test combat outcomes and edge cases.
+- A name.
+- Hit points.
+- Basic combat statistics, as needed for future combat.
+- Experience rewards, for future character progression.
 
-Keep combat rules independent of rendering and input. Research the original mechanics where useful and document deliberate simplifications.
+Keep the initial monster roster small.
 
-## 5. Character Progression
+Monster data and game rules should not depend on Pygame rendering.
 
-After basic exploration and combat are playable:
+### Step 2: Encounter Generation
 
-- [ ] Character hit points and recovery.
-- [ ] Experience and level progression.
-- [ ] Equipment and inventory.
-- [ ] Spells and special abilities.
-- [ ] Status effects.
-- [ ] Gold, rewards, and purchases.
+Implement an encounter system that can determine whether an encounter occurs and select a monster or group of monsters.
 
-Extend the existing character model carefully. Add mechanics incrementally with tests and documentation.
+Requirements:
 
-## 6. Save and Load
+- Use a controllable random-number generator or equivalent mechanism.
+- Make encounter generation testable without relying on unpredictable test results.
+- Keep encounter rules separate from screen rendering.
+- Allow the encounter probability and monster selection rules to evolve later.
 
-Implement persistence after party, character, and exploration state have stabilized.
+Start with a simple encounter probability and a small monster roster.
 
-- [ ] Save and load party data.
-- [ ] Preserve character attributes and progression.
-- [ ] Preserve relevant exploration state.
-- [ ] Use a versioned save format.
-- [ ] Validate loaded data.
-- [ ] Handle missing, malformed, and corrupted saves.
-- [ ] Add automated persistence tests.
+### Step 3: Integrate Encounters with Exploration
 
-Use appropriate Linux user-data directories. Do not deserialize untrusted save files using unsafe serialization mechanisms.
+Connect encounter generation to successful exploration movement.
 
-## 7. Graphics and Audio
+Requirements:
 
-Artwork is created offline. Do not generate artwork automatically unless explicitly requested.
+- Check for encounters after successful movement.
+- Do not generate encounters when movement is blocked.
+- Keep the party's exploration position consistent.
+- Display an appropriate message when an encounter occurs.
+- Avoid triggering multiple encounters from a single movement action.
 
-Maintain `docs/ASSETS.md` as the reference for asset names, dimensions, formats, and intended usage.
+The initial implementation may announce the encounter without starting combat.
 
-Planned asset categories:
+### Step 4: Tests
 
-- Character portraits and sprites.
-- Map tiles and environmental elements.
-- Monsters.
-- Interface elements.
-- Combat effects.
-- Music and sound effects.
-- Fonts.
+Add automated tests covering:
 
-Use the Sweetie 16 palette consistently. Placeholder assets should not block gameplay development.
+- Monster data validation.
+- Encounter generation.
+- Encounter probability behavior.
+- Monster selection.
+- Successful movement triggering an encounter check.
+- Blocked movement not triggering an encounter.
+- Encounter messages.
+- Correct handling of the party's exploration state.
 
-## 8. Packaging and Distribution
+Use deterministic tests wherever randomness is involved.
 
-Prioritize distribution once the game has a useful playable loop.
+### Step 5: Integration and Verification
 
-- [ ] Verify installation on supported Debian and Ubuntu systems.
-- [ ] Maintain Python packaging and dependency configuration.
-- [ ] Document installation and launch instructions.
-- [ ] Determine configuration and save-data locations.
-- [ ] Add useful error reporting.
-- [ ] Prepare versioned releases.
-- [ ] Test on supported Linux distributions.
+Before considering the feature complete:
 
-## 9. Development Workflow
+- Run the full pytest suite.
+- Run Ruff linting.
+- Run Ruff formatting checks.
+- Run Mypy.
+- Run git diff --check.
+- Launch the game and verify exploration behavior manually.
 
-Activate the virtual environment:
+Commit and push the completed feature to GitHub.
 
-```bash
-source .venv/bin/activate
+## Following Feature: Turn-Based Combat
+
+Once random encounters are working, implement a basic combat system.
+
+Initial goals:
+
+- Introduce a combat state.
+- Display a combat screen.
+- Show the party and opposing monsters.
+- Allow party members to attack.
+- Allow monsters to attack.
+- Track hit points and damage.
+- Detect victory and defeat.
+- Return to exploration after combat ends.
+
+Keep combat rules separate from Pygame rendering.
+
+The first version should prioritize a working combat loop over complex mechanics.
+
+Defer spells, status effects, advanced monster behavior, and complicated combat formulas until the basic system works.
+
+## Following Feature: Experience and Character Progression
+
+After combat is functional:
+
+- Award experience for defeating monsters.
+- Track experience for individual characters.
+- Introduce character advancement.
+- Increase character statistics or hit points when appropriate.
+- Display victory and advancement messages.
+
+Keep progression rules consistent with the existing character model.
+
+## Following Feature: Inventory and Equipment
+
+Introduce basic inventory and equipment management.
+
+Initial goals:
+
+- Represent items in the game.
+- Track items owned by party members.
+- Add weapons and armor.
+- Introduce equipment slots.
+- Apply equipment bonuses to combat.
+- Support acquiring items through exploration or combat rewards.
+
+Keep the initial item system small and extensible.
+
+## Following Feature: Saving and Loading
+
+Implement persistent game saves after the core gameplay loop is established.
+
+Save data should eventually include:
+
+- Character names, races, and professions.
+- Character attributes and progression.
+- Current hit points and other relevant character state.
+- Party membership and order.
+- Inventory and equipment.
+- Exploration position.
+- World and event state.
+
+Use a versioned save format where practical so future changes can be handled safely.
+
+Add tests for saving, loading, and invalid or incompatible save data.
+
+## Longer-Term Ideas
+
+Potential future features include:
+
+- Multiple exploration maps.
+- Additional monsters and encounters.
+- More sophisticated combat mechanics.
+- Spells and magic.
+- Status effects.
+- Shops and equipment purchases.
+- Treasure and rewards.
+- Quests and scripted events.
+- Towns and other locations.
+- More sophisticated character progression.
+- Improved graphics, animation, and sound.
+- Additional game settings.
+
+These features should be prioritized after the core exploration, combat, progression, and saving systems are working.
+
+## Current Priority
+
+The immediate development priority is:
+
+1. Random encounters.
+2. Basic turn-based combat.
+3. Experience and character progression.
+4. Inventory and equipment.
+5. Saving and loading.
+
+Complete and test each feature before moving to the next.
+
