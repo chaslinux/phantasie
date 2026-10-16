@@ -20,12 +20,14 @@ class CharacterCreationScreen(BaseScreen):
         self,
         on_confirm: Callable[[Character], None],
         rng: random.Random | None = None,
+        return_screen: str = "title",
     ) -> None:
         """Initialize character creation."""
         super().__init__()
 
         self.on_confirm = on_confirm
         self.rng = rng if rng is not None else random.Random()
+        self.return_screen = return_screen
 
         self.races = list(Race)
         self.professions = list(Profession)
@@ -96,7 +98,7 @@ class CharacterCreationScreen(BaseScreen):
         )
 
         self.on_confirm(character)
-        self.next_screen = "title"
+        self.next_screen = self.return_screen
 
     def handle_event(self, event: pygame.event.Event) -> None:
         """Handle keyboard input."""
@@ -110,7 +112,7 @@ class CharacterCreationScreen(BaseScreen):
             return
 
         if event.key == pygame.K_ESCAPE:
-            self.next_screen = "title"
+            self.next_screen = self.return_screen
             return
 
         if event.key == pygame.K_TAB:

@@ -60,7 +60,7 @@ def test_escape_from_placeholder_returns_to_title(
 
 
 def test_quit_menu_item_requests_shutdown(game: Game) -> None:
-    for _ in range(4):
+    for _ in range(5):
         press_key(game, pygame.K_DOWN)
     press_key(game, pygame.K_RETURN)
 
