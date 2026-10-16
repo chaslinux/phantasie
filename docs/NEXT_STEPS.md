@@ -74,18 +74,20 @@ mypy src/phantasie
 Before committing:
 
 ```bash
-git status
+git status --short
 git diff --check
 git diff
 ```
 
 Stage only the intended files, commit, and push when requested.
 
+Do not claim that a commit has been pushed unless the remote repository confirms it.
+
 ## 3. Current Implementation
 
-The repository already contains the following functionality.
-
 ### Application Foundation
+
+Implemented functionality includes:
 
 - Pygame application loop.
 - 320 × 200 logical rendering canvas.
@@ -104,14 +106,14 @@ The package `src/phantasie/characters/` contains:
 - `rules.py`
 - `__init__.py`
 
-The current model includes:
+The character model includes:
 
 - `Race`
 - `Profession`
 - `Attributes`
 - `Character`
 
-The documented character races and professions are represented by enums.
+The documented races and professions are represented by enums.
 
 Attributes are represented by a frozen dataclass containing:
 
@@ -131,19 +133,17 @@ Implemented in:
 
 `src/phantasie/screens/character_creation.py`
 
-The character creation screen is integrated into the existing screen manager.
-
-Implemented functionality includes:
+Features include:
 
 - Entering a character name.
 - Selecting a race.
 - Selecting a profession.
-- Generating attributes.
-- Displaying character attributes.
+- Generating and displaying attributes.
 - Rejecting confirmation when the name is blank.
 - Confirming a character.
-- Storing the confirmed character in the game state.
+- Adding the confirmed character to the party.
 - Cancelling character creation with Escape.
+- Returning to the title screen after confirmation or cancellation.
 
 The developer has manually verified that the behavior and usability work correctly.
 
@@ -151,7 +151,40 @@ Automated tests are in:
 
 `tests/test_character_creation.py`
 
-### Existing Architecture
+### Party Model
+
+The party model has been implemented in the character models module.
+
+Current functionality includes:
+
+- Creating an empty party.
+- Adding characters to a party.
+- Preserving member order.
+- Reporting the number of party members.
+- Exposing party members through an immutable collection.
+- Keeping different party instances independent.
+
+The party model is independent of Pygame.
+
+Automated tests are in:
+
+`tests/test_party.py`
+
+No maximum party size has been imposed. Research or an explicit design decision should precede adding a party limit.
+
+### Game Integration
+
+The main application is implemented in:
+
+`src/phantasie/game.py`
+
+The game maintains party state and integrates character recruitment with the character creation screen.
+
+Multiple characters can be recruited sequentially. The character creation screen resets the name field appropriately when preparing for another character, preventing text from a previously created character from being retained.
+
+The next development step should build on this existing implementation rather than recreate character creation or the party model.
+
+## 4. Current Architecture
 
 Important files include:
 
@@ -179,126 +212,127 @@ tests/
 ├── test_screen_manager.py
 ├── test_screen_transitions.py
 ├── test_characters.py
-└── test_character_creation.py
+├── test_character_creation.py
+└── test_party.py
 
 docs/
 ├── ASSETS.md
-└── CHARACTER_GENERATION.md
+├── CHARACTER_GENERATION.md
+└── NEXT_STEPS.md
 ```
 
-Always inspect the actual repository before relying on this list. It may have changed since this document was written.
+Always inspect the actual repository before relying on this list. The project may have changed since this document was written.
 
-## 4. Recent Git History
+## 5. Recent Git History
 
-The following commits were confirmed in the development session:
+The latest confirmed local Git history is:
 
+- `1e84ea0` — Add party model and character recruitment
+- `a23fd4d` — Add development roadmap and handoff
 - `40b9677` — Implement character creation screen
 - `f833a56` — Update CHARACTER_GENERATION.md
 - `9eebf84` — Update CHARACTER_GENERATION.md
-- `ceff4c8` — Add initial docs/CHARACTER_GENERATION.md document
-- `9cf431b` — Add initial character models and documented rules
-- `175c199` — Integrate screen manager and screen transitions
 
-Commit `40b9677` was created successfully.
+At the last reported Git check:
 
-The next action after creating this document is to verify whether that commit has been pushed. Do not assume that a commit was pushed merely because it was created.
+- `1e84ea0` was the local HEAD.
+- `a23fd4d` was `origin/main`.
+- The new party and recruitment commit had not yet been confirmed on the remote.
 
-Use:
+The development roadmap was previously committed, but the most recent party and recruitment commit still needs to be pushed if it has not already been pushed.
+
+Check the current state before acting:
 
 ```bash
-git status
+git status --short
 git log -5 --oneline
+git remote -v
+```
+
+If the local branch is ahead of the remote and the working tree is ready, push when requested:
+
+```bash
 git push
 ```
 
-If the commit is already on the remote, there may be nothing to push.
+Do not amend or recreate existing commits unnecessarily.
 
-## 5. Latest Confirmed Quality Checks
+## 6. Latest Confirmed Quality Checks
 
-After character creation was implemented, the reported results were:
+After implementing the party model and correcting the character-name reset behavior, the developer reported the following results:
 
-- 46 tests passed.
-- Ruff formatting check passed.
+- Ruff checks passed.
+- Ruff formatting checks passed.
+- All 52 tests passed.
 - Mypy reported no issues in 14 source files.
-- One Ruff import-order issue remained in `src/phantasie/game.py` at the time of the report.
+- `git diff --check` passed.
 
-The import-order issue should be checked against the current repository rather than assumed to remain unresolved.
+These results apply to the reported working tree at that time. Re-run the checks before making further changes or committing new work.
 
-The developer subsequently confirmed that character creation behavior and usability work correctly.
+## 7. Immediate Next Step: Party Management Interface
 
-Run the quality checks again before making larger changes.
-
-## 6. Immediate Next Step: Party Management
-
-The next milestone should turn character creation into the beginning of a playable RPG session.
-
-At present, a character can be created and stored, but there is not yet a complete party-management or exploration loop.
+The party model and recruitment functionality are implemented. The next useful milestone is to make the party visible and accessible through the game interface.
 
 Start by inspecting:
 
 - `src/phantasie/game.py`
 - `src/phantasie/characters/models.py`
-- `src/phantasie/characters/rules.py`
 - `src/phantasie/screens/character_creation.py`
+- `src/phantasie/screens/title.py`
+- `src/phantasie/screen_manager.py`
+- `tests/test_party.py`
 - `tests/test_character_creation.py`
-- `docs/CHARACTER_GENERATION.md`
+- `tests/test_screen_transitions.py`
 
-Determine exactly how the confirmed character is stored and how character creation currently exits.
+Determine how the existing menu actions and screen transitions are structured before changing navigation.
 
-Do not assume a party model already exists.
+### Proposed Party Screen
 
-### Proposed first party-management milestone
+Implement a party screen that can:
 
-Implement a minimal party model that can hold one or more characters.
-
-Potential responsibilities:
-
-- Store party members in a defined order.
-- Add a newly created character to the party.
-- Expose party members for display and inspection.
-- Prevent accidental loss of characters during screen transitions.
-- Provide a foundation for future party limits and management rules.
-
-Keep the party model independent of Pygame.
-
-Add automated tests for the party model before integrating it into the interface.
-
-Do not impose a maximum party size or other original-game restriction until it has been researched or explicitly chosen as a project simplification.
-
-### Party screen
-
-Once the data model is tested, implement a party screen that can:
-
-- Display the party roster.
+- Display the current party roster.
 - Show each character's name, race, and profession.
-- Show relevant attributes for the selected character.
-- Return to the previous screen.
-- Allow the player to continue toward exploration when appropriate.
+- Display relevant attributes for the selected character.
+- Handle an empty party gracefully.
+- Return to the title screen or previous screen using a consistent navigation convention.
+- Provide a foundation for future character inspection and party management.
 
 Keep the visual design consistent with the title and character creation screens.
 
 Use the existing screen manager rather than introducing another navigation system.
 
-## 7. Next Major Milestone: A Playable Exploration Loop
+Add automated tests for the party screen and its transitions.
 
-After party management, prioritize a small but playable game loop.
+### Navigation
+
+Inspect how the title menu currently handles selection and actions.
+
+Choose a simple, consistent way to access the party screen. Avoid adding unnecessary menu complexity.
+
+If a party menu option is added, ensure it behaves sensibly when the party is empty.
+
+Do not implement party rearrangement, dismissal, formation, or a party-size restriction until those features are needed.
+
+## 8. Next Major Milestone: A Playable Exploration Loop
+
+After the party screen, prioritize a small but playable game loop.
 
 A suggested initial loop is:
 
-1. Create a character.
-2. Add the character to the party.
+1. Create one or more characters.
+2. View the party roster.
 3. Enter a simple exploration area.
 4. Move through a small map.
 5. Encounter an enemy or event.
 6. Resolve a basic encounter.
 7. Return to exploration.
-8. Retain party state between screens.
+8. Retain party and character state between screens.
 
 The first playable version does not need the complete original world, every monster, all spells, or a complete item system.
 
-It should demonstrate that the player can create a character, move around, encounter danger, and make meaningful progress.
+It should demonstrate that the player can recruit characters, explore, encounter danger, and make meaningful progress.
 
-### Exploration architecture
+### Exploration Architecture
 
 Consider introducing separate modules for:
 
@@ -313,7 +347,7 @@ The screen should handle input and rendering. Game rules should determine what h
 
 Use small maps and simple interactions initially.
 
-## 8. Combat
+## 9. Combat
 
 Implement a minimal turn-based combat system after the party and exploration foundations exist.
 
@@ -334,7 +368,7 @@ Avoid implementing a large combat subsystem before the basic exploration loop wo
 
 Keep combat rules independent of rendering and input.
 
-## 9. Character and RPG Progression
+## 10. Character and RPG Progression
 
 Once basic combat is playable, consider:
 
@@ -354,7 +388,7 @@ Avoid adding statistics merely because generic RPGs commonly have them. Each add
 
 If a feature requires a substantial change to the character model, update the tests and documentation alongside the implementation.
 
-## 10. Save and Load
+## 11. Save and Load
 
 Implement persistence after party, character, and exploration state have stabilized.
 
@@ -373,7 +407,7 @@ Use appropriate Linux user-data directories when preparing the game for distribu
 
 Do not treat Python object serialization as automatically safe for untrusted save files.
 
-## 11. Graphics and Audio
+## 12. Graphics and Audio
 
 Artwork is created offline by the developer.
 
@@ -395,7 +429,7 @@ Potential asset categories include:
 
 Continue using placeholder graphics where necessary so gameplay development is not blocked by missing artwork.
 
-## 12. Packaging and Distribution
+## 13. Packaging and Distribution
 
 Once the game has a useful playable loop, consider:
 
@@ -412,9 +446,7 @@ Keep the project installable through its existing Python packaging configuration
 
 Do not prioritize packaging work over the core playable loop unless installation problems prevent development or testing.
 
-## 13. Development Principles
-
-Follow these principles throughout development.
+## 14. Development Principles
 
 ### Gameplay
 
@@ -456,13 +488,14 @@ Follow these principles throughout development.
 - Avoid asking for information already available in the repository or this handoff.
 - Ask the developer to provide local files when the repository or tool access does not expose the required information.
 - Preserve working behavior unless a change has a clear benefit.
+- When asked for Markdown documents, provide plain Markdown source using standard Markdown syntax that can be copied directly into a text editor.
 
-## 14. Instructions for the Next ChatGPT Session
+## 15. Instructions for the Next ChatGPT Session
 
 Start by checking the current Git state and reading the existing documentation.
 
 ```bash
-git status
+git status --short
 git log -5 --oneline
 git remote -v
 find src tests docs -maxdepth 4 -type f | sort
@@ -481,30 +514,34 @@ ruff check .
 ruff format --check .
 python -m pytest -v
 mypy src/phantasie
+git diff --check
 ```
 
 Review:
 
 - `docs/CHARACTER_GENERATION.md`
 - `docs/ASSETS.md`
+- `docs/NEXT_STEPS.md`
 - `src/phantasie/characters/models.py`
 - `src/phantasie/characters/rules.py`
 - `src/phantasie/screens/character_creation.py`
 - `src/phantasie/game.py`
+- `tests/test_party.py`
+- `tests/test_character_creation.py`
 
-Verify the latest commits and whether the character creation commit has reached GitHub.
+Verify the latest commits and whether the party and recruitment commit has reached GitHub.
 
-Then begin the party-management milestone.
+Then proceed with the party-management interface.
 
-Do not recreate character creation, repeat the original setup milestones, or replace the existing screen architecture unnecessarily.
+Do not recreate character creation, rebuild the party model, repeat the original setup milestones, or replace the existing screen architecture unnecessarily.
 
-## 15. Overall Goal
+## 16. Overall Goal
 
 Build a maintainable, playable Linux RPG inspired by the Commodore 64 version of Phantasie III.
 
-The current foundation includes a working title menu, screen transitions, character data models, attribute-generation rules, and a tested character creation interface.
+The current foundation includes a working title menu, screen transitions, character data models, attribute-generation rules, a tested character creation interface, a party model, and sequential character recruitment.
 
-The next priority is to turn those foundations into a persistent party and a small exploration-and-combat loop.
+The next priority is to make the party accessible through the interface and then build a small exploration-and-combat loop.
 
 Focus on delivering a playable game incrementally, expanding mechanics as needed, and maintaining automated tests throughout development.
 
