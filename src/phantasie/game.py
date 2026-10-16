@@ -5,10 +5,12 @@ import pygame
 from phantasie.characters.models import Character, Party
 from phantasie.screen_manager import ScreenManager
 from phantasie.screens.character_creation import CharacterCreationScreen
+from phantasie.screens.exploration import ExplorationScreen
 from phantasie.screens.new_game import NewGameScreen
 from phantasie.screens.party import PartyScreen
 from phantasie.screens.placeholder import PlaceholderScreen
 from phantasie.screens.title import TitleScreen
+from phantasie.world import ExplorationMap, ExplorationState
 
 
 class Game:
@@ -39,6 +41,14 @@ class Game:
         self.character: Character | None = None
         self.party = Party()
         self.adventure_party = Party()
+        self.exploration_map = ExplorationMap()
+        self.exploration_state = ExplorationState()
+
+        if not self.exploration_map.is_walkable(
+            self.exploration_state.x,
+            self.exploration_state.y,
+        ):
+            raise ValueError("The exploration starting position must be walkable.")
 
         # Register the available screens.
         self.screen_manager = ScreenManager()
@@ -80,9 +90,10 @@ class Game:
 
         self.screen_manager.register(
             "adventure",
-            PlaceholderScreen(
-                title="ADVENTURE",
-                message="Adventure gameplay is coming soon.",
+            ExplorationScreen(
+                world=self.exploration_map,
+                state=self.exploration_state,
+                party_provider=lambda: self.adventure_party,
             ),
         )
 

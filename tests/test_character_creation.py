@@ -104,10 +104,7 @@ def test_blank_name_cannot_be_confirmed(game: Game) -> None:
     open_character_creation(game)
     press_key(game, pygame.K_RETURN)
 
-    assert (
-        game.screen_manager.current_screen_name
-        == "new_game_character_creation"
-    )
+    assert game.screen_manager.current_screen_name == "new_game_character_creation"
     assert game.character is None
 
 
