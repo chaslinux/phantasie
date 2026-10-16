@@ -8,6 +8,7 @@ import pygame
 import pytest
 
 from phantasie.game import Game
+from phantasie.screens.party import PartyScreen
 
 
 @pytest.fixture
@@ -40,8 +41,8 @@ def test_new_game_opens_character_creation(game: Game) -> None:
 
 
 def test_options_screen_opens(game: Game) -> None:
-    press_key(game, pygame.K_DOWN)
-    press_key(game, pygame.K_DOWN)
+    for _ in range(3):
+        press_key(game, pygame.K_DOWN)
     press_key(game, pygame.K_RETURN)
 
     assert game.screen_manager.current_screen_name == "options"
@@ -59,9 +60,35 @@ def test_escape_from_placeholder_returns_to_title(
 
 
 def test_quit_menu_item_requests_shutdown(game: Game) -> None:
-    press_key(game, pygame.K_DOWN)
-    press_key(game, pygame.K_DOWN)
-    press_key(game, pygame.K_DOWN)
+    for _ in range(4):
+        press_key(game, pygame.K_DOWN)
     press_key(game, pygame.K_RETURN)
 
     assert game.screen_manager.quit_requested
+
+
+def test_party_menu_opens_party_screen(game: Game) -> None:
+    press_key(game, pygame.K_DOWN)
+    press_key(game, pygame.K_RETURN)
+
+    assert game.screen_manager.current_screen_name == "party"
+    assert isinstance(game.screen_manager.current_screen, PartyScreen)
+
+
+def test_escape_from_party_returns_to_title(game: Game) -> None:
+    press_key(game, pygame.K_DOWN)
+    press_key(game, pygame.K_RETURN)
+    press_key(game, pygame.K_ESCAPE)
+
+    assert game.screen_manager.current_screen_name == "title"
+
+
+def test_party_screen_uses_existing_party(game: Game) -> None:
+    press_key(game, pygame.K_DOWN)
+    press_key(game, pygame.K_RETURN)
+
+    screen = game.screen_manager.current_screen
+
+    assert isinstance(screen, PartyScreen)
+    assert screen.party is game.party
+    assert screen.selected_character is None

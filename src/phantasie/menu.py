@@ -10,6 +10,7 @@ class TitleMenu:
 
     ITEMS = (
         "New Game",
+        "Party",
         "Load Game",
         "Options",
         "Quit",

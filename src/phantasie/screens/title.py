@@ -31,7 +31,7 @@ class TitleScreen(BaseScreen):
         elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
             action = self.menu.activate()
 
-            if action in ("new_game", "options"):
+            if action in ("new_game", "party", "options"):
                 self.menu.status_message = ""
                 self.next_screen = action
 

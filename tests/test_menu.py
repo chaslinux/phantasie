@@ -32,7 +32,7 @@ def test_menu_moves_down(menu: TitleMenu) -> None:
     menu.move_selection(1)
 
     assert menu.selected == 1
-    assert menu.ITEMS[menu.selected] == "Load Game"
+    assert menu.ITEMS[menu.selected] == "Party"
 
 
 def test_menu_moves_up(menu: TitleMenu) -> None:

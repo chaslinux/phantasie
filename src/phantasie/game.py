@@ -5,6 +5,7 @@ import pygame
 from phantasie.characters.models import Character, Party
 from phantasie.screen_manager import ScreenManager
 from phantasie.screens.character_creation import CharacterCreationScreen
+from phantasie.screens.party import PartyScreen
 from phantasie.screens.placeholder import PlaceholderScreen
 from phantasie.screens.title import TitleScreen
 
@@ -52,6 +53,11 @@ class Game:
             CharacterCreationScreen(
                 on_confirm=self._accept_character,
             ),
+        )
+
+        self.screen_manager.register(
+            "party",
+            PartyScreen(self.party),
         )
 
         self.screen_manager.register(
