@@ -5,6 +5,7 @@ import pygame
 from phantasie.characters.models import Character, Party
 from phantasie.screen_manager import ScreenManager
 from phantasie.screens.character_creation import CharacterCreationScreen
+from phantasie.screens.new_game import NewGameScreen
 from phantasie.screens.party import PartyScreen
 from phantasie.screens.placeholder import PlaceholderScreen
 from phantasie.screens.title import TitleScreen
@@ -37,6 +38,7 @@ class Game:
         self.running = True
         self.character: Character | None = None
         self.party = Party()
+        self.adventure_party = Party()
 
         # Register the available screens.
         self.screen_manager = ScreenManager()
@@ -50,14 +52,38 @@ class Game:
 
         self.screen_manager.register(
             "new_game",
+            NewGameScreen(
+                roster=self.party,
+                on_start=self._start_adventure,
+            ),
+        )
+
+        self.screen_manager.register(
+            "character_creation",
             CharacterCreationScreen(
                 on_confirm=self._accept_character,
             ),
         )
 
         self.screen_manager.register(
+            "new_game_character_creation",
+            CharacterCreationScreen(
+                on_confirm=self._accept_character,
+                return_screen="new_game",
+            ),
+        )
+
+        self.screen_manager.register(
             "party",
             PartyScreen(self.party),
+        )
+
+        self.screen_manager.register(
+            "adventure",
+            PlaceholderScreen(
+                title="ADVENTURE",
+                message="Adventure gameplay is coming soon.",
+            ),
         )
 
         self.screen_manager.register(
@@ -125,7 +151,17 @@ class Game:
             pygame.quit()
 
     def _accept_character(self, character: Character) -> None:
-        """Store a confirmed character and report success on the title screen."""
+        """Add a confirmed character to the roster."""
         self.character = character
         self.party.add_member(character)
         self.title_screen.menu.status_message = f"Created {character.name}!"
+
+    def _start_adventure(
+        self,
+        members: tuple[Character, ...],
+    ) -> None:
+        """Store the selected characters as the adventure party."""
+        self.adventure_party = Party()
+
+        for character in members:
+            self.adventure_party.add_member(character)

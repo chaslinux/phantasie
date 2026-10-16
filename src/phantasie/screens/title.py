@@ -31,12 +31,17 @@ class TitleScreen(BaseScreen):
         elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
             action = self.menu.activate()
 
-            if action in ("new_game", "party", "options"):
+            if action in (
+                "new_game",
+                "party",
+                "options",
+                "character_creation",
+            ):
                 self.menu.status_message = ""
                 self.next_screen = action
 
-            elif action == "load_game":
-                self.menu.status_message = "Load Game is not implemented yet."
+            elif action == "continue":
+                self.menu.status_message = "Continue is not implemented yet."
 
             elif action == "quit":
                 self.next_screen = "quit"

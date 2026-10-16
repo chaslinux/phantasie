@@ -117,3 +117,45 @@ def test_empty_party_renders(pygame_ready) -> None:
     screen.render(surface)
 
     assert surface.get_size() == (320, 200)
+
+
+def test_large_party_scrolls_to_keep_selection_visible(
+    pygame_ready,
+    monkeypatch,
+) -> None:
+    party = Party()
+
+    for index in range(12):
+        party.add_member(
+            Character(
+                name=f"Member {index:02}",
+                race=Race.HUMAN,
+                profession=Profession.FIGHTER,
+                attributes=Attributes(12, 10, 11, 13, 9),
+            )
+        )
+
+    screen = PartyScreen(party)
+    screen.selected_index = 9
+
+    drawn_text: list[tuple[str, tuple[int, int]]] = []
+    original_draw_text = screen._draw_text
+
+    def capture_text(
+        surface: pygame.Surface,
+        text: str,
+        position: tuple[int, int],
+        color: tuple[int, int, int],
+        font: pygame.font.Font | None = None,
+    ) -> None:
+        drawn_text.append((text, position))
+        original_draw_text(surface, text, position, color, font)
+
+    monkeypatch.setattr(screen, "_draw_text", capture_text)
+    screen.render(pygame.Surface((320, 200)))
+
+    roster = [text for text, (x, y) in drawn_text if x == 12 and 38 <= y < 38 + 8 * 13]
+
+    assert len(roster) == 8
+    assert any(text == "> Member 09" for text in roster)
+    assert any(text.endswith("Member 11") for text in roster)

@@ -15,6 +15,7 @@ class PartyScreen(BaseScreen):
         super().__init__()
         self.party = party
         self.selected_index = 0
+        self.show_details = False
 
         self.title_font = pygame.font.Font(None, 24)
         self.font = pygame.font.Font(None, 16)
@@ -41,7 +42,13 @@ class PartyScreen(BaseScreen):
             return
 
         if event.key == pygame.K_ESCAPE:
-            self.next_screen = "title"
+            if self.show_details:
+                self.show_details = False
+            else:
+                self.next_screen = "title"
+        elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
+            if self.selected_character is not None:
+                self.show_details = True
         elif event.key in (pygame.K_UP, pygame.K_w):
             if self.party.member_count:
                 self.selected_index = (
@@ -82,6 +89,64 @@ class PartyScreen(BaseScreen):
             width=1,
         )
 
+        if self.show_details:
+            character = self.selected_character
+
+            if character is not None:
+                self._draw_text(
+                    surface,
+                    "CHARACTER DETAILS",
+                    (12, 10),
+                    palette.HIGHLIGHT,
+                    self.title_font,
+                )
+                self._draw_text(
+                    surface,
+                    character.name,
+                    (12, 40),
+                    palette.HIGHLIGHT,
+                )
+                self._draw_text(
+                    surface,
+                    f"Race: {character.race.value}",
+                    (12, 62),
+                    palette.TEXT,
+                )
+                self._draw_text(
+                    surface,
+                    f"Class: {character.profession.value}",
+                    (12, 80),
+                    palette.TEXT,
+                )
+
+                attributes = (
+                    ("Strength", character.attributes.strength),
+                    ("Intelligence", character.attributes.intelligence),
+                    ("Dexterity", character.attributes.dexterity),
+                    ("Constitution", character.attributes.constitution),
+                    ("Charisma", character.attributes.charisma),
+                )
+
+                for row, (label, value) in enumerate(attributes):
+                    self._draw_text(
+                        surface,
+                        f"{label}: {value}",
+                        (12, 103 + row * 13),
+                        palette.TEXT,
+                        self.small_font,
+                    )
+
+                self._draw_text(
+                    surface,
+                    "ESC: BACK TO PARTY",
+                    (12, height - 20),
+                    palette.TEXT_MUTED,
+                    self.small_font,
+                )
+                return
+
+            self.show_details = False
+
         self._draw_text(
             surface,
             "PARTY",
@@ -111,9 +176,13 @@ class PartyScreen(BaseScreen):
 
             # Keep the selected member visible as the roster grows.
             visible_count = 8
-            start_index = max(
-                0,
-                self.selected_index - visible_count + 1,
+            # Keep the selected member near the middle of the visible
+            # roster, while keeping the first and last members in view
+            # when navigating near either end of the party.
+            max_start = max(0, len(members) - visible_count)
+            start_index = min(
+                max(0, self.selected_index - visible_count // 2),
+                max_start,
             )
             visible_members = members[start_index : start_index + visible_count]
 

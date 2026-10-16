@@ -11,8 +11,9 @@ class TitleMenu:
     ITEMS = (
         "New Game",
         "Party",
-        "Load Game",
+        "Continue",
         "Options",
+        "Character Creation",
         "Quit",
     )
 
