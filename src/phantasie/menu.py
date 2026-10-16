@@ -66,7 +66,7 @@ class TitleMenu:
 
         # Game title.
         title = self.title_font.render(
-            "PHANTASIE III",
+            "PHANTASIE",
             True,
             palette.HIGHLIGHT,
         )
@@ -77,21 +77,9 @@ class TitleMenu:
 
         surface.blit(title, title_rect)
 
-        subtitle = self.menu_font.render(
-            "THE WRATH OF NIKADEMUS",
-            True,
-            palette.TEXT_MUTED,
-        )
-
-        subtitle_rect = subtitle.get_rect(
-            center=(width // 2, 65),
-        )
-
-        surface.blit(subtitle, subtitle_rect)
-
         # Menu options.
-        menu_y = 100
-        line_height = 20
+        menu_y = 87
+        line_height = 17
 
         for index, item in enumerate(self.ITEMS):
             is_selected = index == self.selected
