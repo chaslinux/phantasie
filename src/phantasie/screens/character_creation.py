@@ -139,10 +139,6 @@ class CharacterCreationScreen(BaseScreen):
                 self.message = ""
             elif event.key == pygame.K_RETURN:
                 self._confirm()
-            elif event.unicode and event.unicode.isprintable():
-                if len(self.name) < 16:
-                    self.name += event.unicode
-                    self.message = ""
             return
 
         if event.key == pygame.K_r:

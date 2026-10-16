@@ -24,6 +24,7 @@ class Game:
     def __init__(self) -> None:
         """Initialize the game."""
         pygame.init()
+        pygame.key.start_text_input()
 
         pygame.display.set_caption("Phantasie III")
 

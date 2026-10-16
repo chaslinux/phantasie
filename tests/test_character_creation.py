@@ -33,6 +33,15 @@ def press_key(game: Game, key: int, unicode: str | None = None) -> None:
     game.screen_manager.handle_event(event)
 
 
+def press_text(game: Game, text: str) -> None:
+    """Send a text-input event to the active screen."""
+    event = pygame.event.Event(
+        pygame.TEXTINPUT,
+        text=text,
+    )
+    game.screen_manager.handle_event(event)
+
+
 def test_new_game_uses_character_creation_screen(game: Game) -> None:
     press_key(game, pygame.K_RETURN)
 
@@ -53,9 +62,9 @@ def test_character_creation_has_default_choices(game: Game) -> None:
 
 def test_player_can_enter_character_name(game: Game) -> None:
     press_key(game, pygame.K_RETURN)
-    press_key(game, pygame.K_a, "A")
-    press_key(game, pygame.K_d, "d")
-    press_key(game, pygame.K_a, "a")
+    press_text(game, "A")
+    press_text(game, "d")
+    press_text(game, "a")
 
     screen = game.screen_manager.current_screen
     assert isinstance(screen, CharacterCreationScreen)
@@ -93,9 +102,9 @@ def test_blank_name_cannot_be_confirmed(game: Game) -> None:
 
 def test_confirmed_character_is_stored(game: Game) -> None:
     press_key(game, pygame.K_RETURN)
-    press_key(game, pygame.K_a, "A")
-    press_key(game, pygame.K_d, "d")
-    press_key(game, pygame.K_a, "a")
+    press_text(game, "A")
+    press_text(game, "d")
+    press_text(game, "a")
     press_key(game, pygame.K_RETURN)
 
     assert game.screen_manager.current_screen_name == "title"
