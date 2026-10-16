@@ -1,4 +1,6 @@
-"""Documented race limits and profession modifiers."""
+"""Character attribute rules and generation."""
+
+import random
 
 from phantasie.characters.models import Attributes, Profession, Race
 
@@ -33,6 +35,13 @@ PROFESSION_MODIFIERS: dict[Profession, Attributes] = {
     Profession.WIZARD: Attributes(-4, 3, -2, 0, 1),
 }
 
+MIN_ATTRIBUTE = 3
+MAX_ATTRIBUTE = 22
+
+# Initial implementation choice, not a verified original-game formula.
+BASE_ATTRIBUTE_MIN = 8
+BASE_ATTRIBUTE_MAX = 18
+
 
 def attributes_within_racial_maximums(
     race: Race,
@@ -42,5 +51,52 @@ def attributes_within_racial_maximums(
     maximums = RACIAL_MAXIMUMS[race]
     return all(
         value <= maximum
-        for value, maximum in zip(attributes.values(), maximums.values(), strict=True)
+        for value, maximum in zip(
+            attributes.values(),
+            maximums.values(),
+            strict=True,
+        )
     )
+
+
+def attributes_are_valid(race: Race, attributes: Attributes) -> bool:
+    """Return whether attributes satisfy the general and racial limits."""
+    return all(
+        MIN_ATTRIBUTE <= value <= MAX_ATTRIBUTE for value in attributes.values()
+    ) and attributes_within_racial_maximums(race, attributes)
+
+
+def generate_attributes(
+    race: Race,
+    profession: Profession,
+    rng: random.Random | None = None,
+) -> Attributes:
+    """Generate attributes using the project's initial playable rules.
+
+    Each base attribute is rolled from 8 through 18, inclusive.
+    Profession modifiers are applied to the rolls, then each result
+    is clamped between 3 and the selected race's maximum.
+
+    This is a project design choice, not a verified reconstruction
+    of the original Commodore 64 generation algorithm.
+
+    Pass a seeded random.Random instance to make results reproducible.
+    """
+    generator = rng if rng is not None else random.Random()
+    maximums = RACIAL_MAXIMUMS[race]
+    modifiers = PROFESSION_MODIFIERS[profession]
+
+    values = tuple(
+        min(maximum, max(MIN_ATTRIBUTE, base + modifier))
+        for base, modifier, maximum in zip(
+            (
+                generator.randint(BASE_ATTRIBUTE_MIN, BASE_ATTRIBUTE_MAX)
+                for _ in range(5)
+            ),
+            modifiers.values(),
+            maximums.values(),
+            strict=True,
+        )
+    )
+
+    return Attributes(*values)

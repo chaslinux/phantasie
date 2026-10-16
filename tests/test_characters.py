@@ -1,10 +1,14 @@
 """Tests for Phantasie III character definitions."""
 
+import random
+
 from phantasie.characters.models import Attributes, Profession, Race
 from phantasie.characters.rules import (
     PROFESSION_MODIFIERS,
     RACIAL_MAXIMUMS,
+    attributes_are_valid,
     attributes_within_racial_maximums,
+    generate_attributes,
 )
 
 
@@ -42,3 +46,63 @@ def test_attributes_above_racial_maximums_are_invalid() -> None:
         Race.HUMAN,
         Attributes(19, 18, 18, 18, 18),
     )
+
+
+def test_generated_attributes_are_reproducible() -> None:
+    first = generate_attributes(
+        Race.HUMAN,
+        Profession.FIGHTER,
+        random.Random(12345),
+    )
+    second = generate_attributes(
+        Race.HUMAN,
+        Profession.FIGHTER,
+        random.Random(12345),
+    )
+
+    assert first == second
+
+
+def test_generated_attributes_respect_all_racial_limits() -> None:
+    for race in Race:
+        for profession in Profession:
+            attributes = generate_attributes(
+                race,
+                profession,
+                random.Random(42),
+            )
+
+            assert attributes_are_valid(race, attributes)
+
+
+def test_attributes_below_minimum_are_invalid() -> None:
+    assert not attributes_are_valid(
+        Race.HUMAN,
+        Attributes(2, 10, 10, 10, 10),
+    )
+
+
+def test_attributes_above_general_maximum_are_invalid() -> None:
+    assert not attributes_are_valid(
+        Race.TROLL,
+        Attributes(23, 10, 10, 10, 10),
+    )
+
+
+def test_attributes_above_racial_maximum_are_invalid() -> None:
+    assert not attributes_are_valid(
+        Race.HUMAN,
+        Attributes(19, 10, 10, 10, 10),
+    )
+
+
+def test_generated_attributes_stay_above_minimum() -> None:
+    for race in Race:
+        for profession in Profession:
+            attributes = generate_attributes(
+                race,
+                profession,
+                random.Random(7),
+            )
+
+            assert all(value >= 3 for value in attributes.values())

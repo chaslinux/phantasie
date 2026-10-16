@@ -2,7 +2,9 @@
 
 import pygame
 
+from phantasie.characters.models import Character
 from phantasie.screen_manager import ScreenManager
+from phantasie.screens.character_creation import CharacterCreationScreen
 from phantasie.screens.placeholder import PlaceholderScreen
 from phantasie.screens.title import TitleScreen
 
@@ -31,6 +33,7 @@ class Game:
 
         self.clock = pygame.time.Clock()
         self.running = True
+        self.character: Character | None = None
 
         # Register the available screens.
         self.screen_manager = ScreenManager()
@@ -44,9 +47,8 @@ class Game:
 
         self.screen_manager.register(
             "new_game",
-            PlaceholderScreen(
-                title="CHARACTER CREATION",
-                message="Character creation is coming soon.",
+            CharacterCreationScreen(
+                on_confirm=self._accept_character,
             ),
         )
 
@@ -113,3 +115,8 @@ class Game:
                 self.render()
         finally:
             pygame.quit()
+
+    def _accept_character(self, character: Character) -> None:
+        """Store a confirmed character and report success on the title screen."""
+        self.character = character
+        self.title_screen.menu.status_message = f"Created {character.name}!"
