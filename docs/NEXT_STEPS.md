@@ -1,3 +1,4 @@
+
 # Phantasie III - Next Steps
 
 ## Current Status
@@ -22,17 +23,25 @@ Implemented features:
 - Separate party state for the active adventure.
 - Exploration screen integrated with the screen manager.
 - Basic exploration messages and event handling.
+- Monster data models with validated combat statistics and experience rewards.
+- A small default monster roster.
+- Random encounter generation with configurable encounter probability.
+- Injectable random-number generator for reproducible tests.
+- Random encounter checks after successful ordinary exploration movement.
+- Encounter messages displayed during exploration.
+- Blocked movement does not trigger random encounters.
+- Waystone events do not trigger random encounters.
+- Encounter generation and monster data are separate from Pygame rendering.
 
-The project currently has 88 automated tests passing.
+The latest reported test run has 106 automated tests passing.
 
 Code quality checks:
 
 - Ruff linting passes.
-- Ruff formatting checks pass.
 - Mypy type checking passes.
-- Git whitespace checks pass.
+- Ruff formatting and Git whitespace checks require final verification after the latest changes.
 
-The game launches successfully. Pygame may display an AVX2 performance warning, but it does not prevent the game from running.
+The game has previously launched successfully. Pygame may display an AVX2 performance warning, but it does not prevent the game from running.
 
 ## Development Approach
 
@@ -44,119 +53,156 @@ Guidelines:
 - Write automated tests for new functionality.
 - Run the complete test suite after integrating each feature.
 - Run Ruff, formatting checks, and Mypy before committing.
+- Run `git diff --check` before committing.
 - Keep changes focused on one feature at a time.
 - Commit working features to Git before beginning the next major feature.
 - Push completed commits to GitHub.
 - Update this document as the project evolves.
 
-## Next Feature: Random Encounters
+## Immediate Priority: Finish Random Encounters
 
-### Goal
+The initial random encounter implementation is in place. Finish verification and commit the feature before starting combat.
 
-Introduce monsters and random encounters during exploration.
+### Step 1: Final Code Quality Checks
 
-The first implementation should establish the encounter system without implementing full combat.
+Run:
 
-### Step 1: Monster Data Models
+- `pytest -q`
+- `ruff check .`
+- `ruff format --check .`
+- `mypy src`
+- `git diff --check`
 
-Create the data structures needed to represent monsters.
+Resolve all failures before proceeding.
 
-Initially, monsters should have:
+### Step 2: Review the Changes
 
-- A name.
-- Hit points.
-- Basic combat statistics, as needed for future combat.
-- Experience rewards, for future character progression.
+Inspect the working tree and diff.
 
-Keep the initial monster roster small.
+Confirm that:
 
-Monster data and game rules should not depend on Pygame rendering.
+- Monster definitions are in `src/phantasie/encounters.py`.
+- Monster data is validated.
+- Encounter probability is configurable.
+- Randomness can be controlled in tests.
+- Successful ordinary movement triggers one encounter check.
+- Blocked movement does not trigger an encounter.
+- Waystone events retain their existing behavior.
+- Encounter messages display correctly.
+- Exploration position remains consistent.
 
-### Step 2: Encounter Generation
+### Step 3: Manual Gameplay Verification
 
-Implement an encounter system that can determine whether an encounter occurs and select a monster or group of monsters.
+Launch the game and verify:
+
+- The application starts successfully.
+- Character creation and party selection still work.
+- The party enters exploration at the expected position.
+- Arrow keys and WASD move the party correctly.
+- Walls prevent movement.
+- The waystone event still works.
+- Random encounters can appear during exploration.
+- Encounter messages are readable.
+- The game remains responsive after an encounter message.
+
+Investigate any issues before committing.
+
+### Step 4: Commit and Push
+
+Once all checks pass and manual verification is complete:
+
+- Review `git status` and `git diff`.
+- Commit the random encounter feature.
+- Push the commit to GitHub.
+- Confirm that the local branch is synchronized with `origin/main`.
+
+## Next Feature: Turn-Based Combat
+
+Once random encounters are committed and verified, implement a basic combat system.
+
+### Step 1: Combat Data and Rules
+
+Introduce combat logic independently of Pygame rendering.
+
+Initial goals:
+
+- Represent an active combat encounter.
+- Track the party and opposing monsters.
+- Track current hit points during combat.
+- Determine whether combatants are alive or defeated.
+- Calculate basic attack damage.
+- Prevent defeated combatants from taking turns.
+
+Keep the initial rules straightforward and testable.
+
+### Step 2: Combat State and Screen
+
+Introduce a combat state and a combat screen.
 
 Requirements:
 
-- Use a controllable random-number generator or equivalent mechanism.
-- Make encounter generation testable without relying on unpredictable test results.
-- Keep encounter rules separate from screen rendering.
-- Allow the encounter probability and monster selection rules to evolve later.
+- Transition from exploration to combat when an encounter occurs.
+- Preserve the party's exploration position during combat.
+- Display party members and opposing monsters.
+- Display current hit points.
+- Show combat messages.
+- Provide a clear way to select or execute party actions.
 
-Start with a simple encounter probability and a small monster roster.
+Avoid triggering additional exploration encounters while combat is active.
 
-### Step 3: Integrate Encounters with Exploration
+### Step 3: Turn Order and Attacks
 
-Connect encounter generation to successful exploration movement.
+Implement a simple turn-based combat loop.
 
-Requirements:
+Initial goals:
 
-- Check for encounters after successful movement.
-- Do not generate encounters when movement is blocked.
-- Keep the party's exploration position consistent.
-- Display an appropriate message when an encounter occurs.
-- Avoid triggering multiple encounters from a single movement action.
+- Allow party members to attack.
+- Allow living monsters to attack.
+- Apply damage and update hit points.
+- Skip defeated combatants.
+- Detect victory and defeat.
+- Prevent actions after combat has ended.
 
-The initial implementation may announce the encounter without starting combat.
+Defer spells, status effects, advanced monster behavior, and complicated combat formulas.
 
-### Step 4: Tests
+### Step 4: Combat Tests
 
 Add automated tests covering:
 
-- Monster data validation.
-- Encounter generation.
-- Encounter probability behavior.
-- Monster selection.
-- Successful movement triggering an encounter check.
-- Blocked movement not triggering an encounter.
-- Encounter messages.
-- Correct handling of the party's exploration state.
+- Combat initialization.
+- Attack and damage calculations.
+- Hit-point changes.
+- Defeated combatants.
+- Turn handling.
+- Victory and defeat conditions.
+- Exploration-to-combat transitions.
+- Prevention of duplicate encounters during combat.
+- Return to exploration after victory.
+- Correct preservation of exploration state.
 
 Use deterministic tests wherever randomness is involved.
 
 ### Step 5: Integration and Verification
 
-Before considering the feature complete:
+Before considering combat complete:
 
-- Run the full pytest suite.
-- Run Ruff linting.
-- Run Ruff formatting checks.
+- Run the complete pytest suite.
+- Run Ruff linting and formatting checks.
 - Run Mypy.
-- Run git diff --check.
-- Launch the game and verify exploration behavior manually.
-
-Commit and push the completed feature to GitHub.
-
-## Following Feature: Turn-Based Combat
-
-Once random encounters are working, implement a basic combat system.
-
-Initial goals:
-
-- Introduce a combat state.
-- Display a combat screen.
-- Show the party and opposing monsters.
-- Allow party members to attack.
-- Allow monsters to attack.
-- Track hit points and damage.
-- Detect victory and defeat.
-- Return to exploration after combat ends.
-
-Keep combat rules separate from Pygame rendering.
-
-The first version should prioritize a working combat loop over complex mechanics.
-
-Defer spells, status effects, advanced monster behavior, and complicated combat formulas until the basic system works.
+- Run `git diff --check`.
+- Launch the game and test combat manually.
+- Commit and push the completed feature.
 
 ## Following Feature: Experience and Character Progression
 
-After combat is functional:
+After basic combat is functional:
 
 - Award experience for defeating monsters.
 - Track experience for individual characters.
 - Introduce character advancement.
 - Increase character statistics or hit points when appropriate.
 - Display victory and advancement messages.
+- Define how experience rewards are distributed among party members.
 
 Keep progression rules consistent with the existing character model.
 
@@ -191,14 +237,15 @@ Save data should eventually include:
 
 Use a versioned save format where practical so future changes can be handled safely.
 
-Add tests for saving, loading, and invalid or incompatible save data.
+Add tests for saving, loading, invalid data, and incompatible save formats.
 
 ## Longer-Term Ideas
 
 Potential future features include:
 
 - Multiple exploration maps.
-- Additional monsters and encounters.
+- Additional monsters and encounter types.
+- Monster groups.
 - More sophisticated combat mechanics.
 - Spells and magic.
 - Status effects.
@@ -210,17 +257,17 @@ Potential future features include:
 - Improved graphics, animation, and sound.
 - Additional game settings.
 
-These features should be prioritized after the core exploration, combat, progression, and saving systems are working.
+Prioritize these features after the core exploration, combat, progression, and saving systems are working.
 
 ## Current Priority
 
-The immediate development priority is:
+The immediate development priorities are:
 
-1. Random encounters.
-2. Basic turn-based combat.
-3. Experience and character progression.
-4. Inventory and equipment.
-5. Saving and loading.
+1. Finish verification and commit random encounters.
+2. Implement basic turn-based combat.
+3. Implement experience and character progression.
+4. Add inventory and equipment.
+5. Implement saving and loading.
 
 Complete and test each feature before moving to the next.
 
