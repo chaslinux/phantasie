@@ -171,3 +171,43 @@ def test_selected_party_enters_exploration_and_position_persists(
         assert screen.party_provider().members == (character,)
     finally:
         pygame.quit()
+
+
+def test_blocked_movement_does_not_check_for_encounters(
+    pygame_ready,
+    party: Party,
+) -> None:
+    class UnexpectedEncounterGenerator:
+        def generate(self):
+            raise AssertionError("Blocked movement must not check encounters.")
+
+    screen = ExplorationScreen(
+        ExplorationMap(),
+        ExplorationState(),
+        lambda: party,
+        UnexpectedEncounterGenerator(),  # type: ignore[arg-type]
+    )
+
+    press_key(screen, pygame.K_LEFT)
+
+    assert screen.message == "YOU CANNOT GO THAT WAY."
+
+
+def test_waystone_event_does_not_check_for_random_encounters(
+    pygame_ready,
+    party: Party,
+) -> None:
+    class UnexpectedEncounterGenerator:
+        def generate(self):
+            raise AssertionError("Waystone events must not check encounters.")
+
+    screen = ExplorationScreen(
+        ExplorationMap(),
+        ExplorationState(x=7, y=6),
+        lambda: party,
+        UnexpectedEncounterGenerator(),  # type: ignore[arg-type]
+    )
+
+    press_key(screen, pygame.K_RIGHT)
+
+    assert screen.message == "YOU DISCOVER AN OLD WAYSTONE."

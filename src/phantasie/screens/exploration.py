@@ -6,6 +6,7 @@ import pygame
 
 from phantasie import palette
 from phantasie.characters.models import Party
+from phantasie.encounters import EncounterGenerator
 from phantasie.screens.base import BaseScreen
 from phantasie.world import ExplorationMap, ExplorationState, MoveResult
 
@@ -22,12 +23,18 @@ class ExplorationScreen(BaseScreen):
         world: ExplorationMap,
         state: ExplorationState,
         party_provider: Callable[[], Party],
+        encounter_generator: EncounterGenerator | None = None,
     ) -> None:
         """Initialize exploration with persistent world state."""
         super().__init__()
         self.world = world
         self.state = state
         self.party_provider = party_provider
+        self.encounter_generator = (
+            encounter_generator
+            if encounter_generator is not None
+            else EncounterGenerator()
+        )
         if not self.world.is_walkable(self.state.x, self.state.y):
             raise ValueError("The exploration starting position must be walkable.")
         self.message = "EXPLORE THE AREA."
@@ -70,7 +77,11 @@ class ExplorationScreen(BaseScreen):
         elif result is MoveResult.EVENT:
             self.message = "YOU DISCOVER AN OLD WAYSTONE."
         else:
-            self.message = ""
+            monster = self.encounter_generator.generate()
+            if monster is None:
+                self.message = ""
+            else:
+                self.message = f"A WILD {monster.name.upper()} APPEARS!"
 
     def update(self, dt: float) -> None:
         """Update exploration state."""
