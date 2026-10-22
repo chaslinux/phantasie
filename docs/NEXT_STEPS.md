@@ -2,66 +2,148 @@
 
 ## Current Status
 
-The project has a working foundation for an RPG inspired by Phantasie III.
+Phantasie III has a working foundation for an RPG inspired by the
+classic Phantasie series.
 
-Implemented features:
+The game currently supports character creation, party selection,
+exploration, random encounters, encounter fleeing, and resetting
+adventure state when starting a new game.
+
+The next major gameplay milestone is implementing turn-based combat.
+
+## Implemented Features
+
+### Application and Navigation
 
 - Pygame application initialization and main loop.
 - Title screen and menu navigation.
 - Screen manager for switching between screens.
+- Rendering through a logical game canvas.
+- Keyboard-driven navigation between screens.
+
+### Characters and Parties
+
 - Character creation.
 - Character names, races, professions, and attributes.
 - Character attribute validation and generation.
+- Character roster management.
 - Party management with support for multiple characters.
 - Party screen with character selection and scrolling.
+- New-adventure party selection from the existing character roster.
+- Replacement of the active adventure party when a new party is selected.
+
+### Exploration
+
 - Exploration map with walls, open tiles, and a waystone event tile.
-- Cardinal movement using the arrow keys or WASD.
+- Cardinal movement using arrow keys or WASD.
 - Collision detection preventing movement through walls.
 - Map boundary validation.
-- Persistent exploration position during the current game session.
+- Persistent exploration coordinates during an adventure.
 - Separate party state for the active adventure.
 - Exploration screen integrated with the screen manager.
-- Basic exploration messages and event handling.
-- Monster data models with validated combat statistics and experience rewards.
+- Exploration messages and event handling.
+- Waystone discovery.
+- Preservation of exploration position when returning to the title
+  screen during the current application session.
+
+### Random Encounters
+
+- Monster data models with validated combat statistics and experience
+  rewards.
 - A small default monster roster.
 - Random encounter generation with configurable encounter probability.
 - Injectable random-number generator for reproducible tests.
-- Random encounter checks after successful ordinary exploration movement.
+- Random encounter checks after successful ordinary exploration
+  movement.
 - Encounter messages displayed during exploration.
 - Blocked movement does not trigger random encounters.
-- Waystone events do not trigger random encounters.
+- Waystone events do not trigger random encounters on the same move.
 - Active encounter tracking in the exploration screen.
-- Basic encounter fleeing.
-- Exploration movement is restricted while an encounter is active.
-- Encounter generation and monster data are separate from Pygame rendering.
+- Ordinary exploration movement is restricted while an encounter is
+  active.
+- Pressing F flees from an active encounter.
+- Fleeing clears the active encounter.
+- Fleeing preserves exploration coordinates.
+- Exploration can resume after fleeing.
+- Fleeing does not consume an additional movement action.
+- Encounter generation and monster definitions are separate from
+  Pygame rendering.
 
-### Current Limitations
+### New-Adventure Initialization
 
-The encounter system is not yet a complete combat system.
+- Starting a new game resets exploration coordinates.
+- Exploration event state is reset for the new adventure.
+- Active encounter state is cleared.
+- Exploration messages are reset.
+- Previous party selections are cleared.
+- Party selection starts at the first roster entry.
+- The active adventure party is reset before a new adventure begins.
+- The existing character roster is preserved.
+- Returning to the title screen does not automatically reset the
+  current adventure.
+- Regression tests cover new-adventure state reset and party replacement.
 
-- Encounters can occur before the player reaches the waystone.
-- Active encounters can be fled, but there is no turn-based combat yet.
-- Defeating monsters, victory rewards, and experience distribution are not implemented.
-- Selecting New Game can reuse existing characters and adventure state instead of starting a completely fresh game.
-- Exploration position persists when returning to the title screen and re-entering exploration.
-- Saving and loading are not implemented.
-- The Continue menu option is not implemented.
+## Current Verification
 
-### Latest Verification
+The latest complete verification run reported:
 
-The latest reported complete test run passed:
-
-- 108 automated tests passed.
+- 115 automated tests passed.
 - Ruff linting passed.
 - Ruff formatting checks passed.
 - Mypy reported no issues in 19 source files.
 - git diff --check passed.
+- The relevant encounter, exploration, and game tests passed.
 
-The game has launched successfully using:
+The game has previously launched successfully using:
 
     python3 -m phantasie
 
-The working tree contains uncommitted changes related to encounter handling and its tests. Review the current Git status before committing.
+The test run produces a Pygame warning that the installed Pygame build
+does not support AVX2 optimizations on the current system. This is a
+performance warning, not a test failure.
+
+Repeat the complete verification commands after future changes.
+
+## Current Limitations
+
+The game is not yet a complete RPG.
+
+### Combat
+
+- Encounters can occur during exploration, but combat is not implemented.
+- Monsters cannot yet be defeated through player actions.
+- Party members cannot yet attack monsters.
+- Monsters do not take combat turns.
+- Combat victory and defeat conditions are not implemented.
+- Experience rewards are defined but are not awarded.
+- Fleeing currently exits an encounter without combat consequences.
+
+### Character Progression
+
+- Experience is not tracked or distributed.
+- Character advancement is not implemented.
+- Character statistics do not increase through progression.
+
+### Inventory and Equipment
+
+- Inventory management is not implemented.
+- Weapons and armor are not implemented as usable equipment.
+- Equipment bonuses do not affect combat.
+
+### Persistence
+
+- Saving and loading are not implemented.
+- The Continue menu option is not implemented.
+- Adventure state is retained only during the current application
+  session.
+
+### World and Gameplay
+
+- Exploration currently uses a small map.
+- Only a small default monster roster exists.
+- There are no additional maps, towns, shops, or quests.
+- Combat, treasure, and progression rewards are not implemented.
+- Spells and status effects are not implemented.
 
 ## Development Approach
 
@@ -69,55 +151,81 @@ Continue building the game in small, testable increments.
 
 Guidelines:
 
-- Keep game logic separate from Pygame rendering and input handling.
+- Keep game rules separate from Pygame rendering and input handling.
 - Write automated tests for new functionality.
+- Prefer deterministic tests when randomness is involved.
 - Run the complete test suite after integrating each feature.
 - Run Ruff, formatting checks, and Mypy before committing.
 - Run git diff --check before committing.
 - Keep changes focused on one feature at a time.
-- Commit working features to Git before beginning the next major feature.
+- Commit working features before beginning the next major feature.
 - Push completed commits to GitHub.
 - Update this document as the project evolves.
-- Avoid introducing a complicated architecture before the gameplay requirements justify it.
+- Avoid introducing a complicated architecture before gameplay
+  requirements justify it.
+- Do not mark planned functionality as implemented until it exists
+  and has been tested.
 
-## Immediate Priority: Stabilize Encounter Handling
+## Immediate Priority: Review Repository and Encounter Integration
 
-Before beginning the full combat system, finish and commit the existing encounter work.
+Encounter generation, fleeing, and new-adventure initialization now
+have regression tests.
 
-### Step 1: Verify Encounter Behavior
+Before beginning combat, perform a final review of the surrounding
+implementation and repository contents.
 
-Confirm that:
+### Step 1: Review Backup Files
+
+The repository currently contains backup files alongside source files:
+
+- src/phantasie/game.py.bak
+- src/phantasie/screens/exploration.py.bak
+- src/phantasie/screens/new_game.py.bak
+- src/phantasie/screens/title.py.bak
+
+Determine whether these files are intentional project assets or
+temporary development backups.
+
+If they are unnecessary backups, remove them in a separate, reviewed
+change. Confirm that no project tooling or documentation depends on
+them.
+
+Avoid mixing unrelated cleanup with the combat implementation.
+
+### Step 2: Review Encounter Behavior
+
+Confirm that the current implementation continues to satisfy these
+requirements:
 
 - Successful ordinary movement checks for random encounters.
 - Blocked movement does not trigger encounters.
-- Waystone events do not trigger random encounters.
-- Encounter messages display correctly.
-- An active encounter prevents ordinary exploration movement.
-- Pressing the flee key exits the encounter.
+- Waystone events do not trigger random encounters on the same move.
+- Encounter messages are displayed correctly.
+- Movement is restricted while an encounter is active.
 - Fleeing clears the active encounter.
-- Fleeing does not unintentionally reset the exploration position.
+- Fleeing preserves exploration coordinates.
 - The player can continue exploring after fleeing.
+- Encounter probability remains configurable.
+- Seeded random-number generators produce reproducible results.
 
-Investigate the interaction between encounter probability and waystone placement. The player should have a reasonable opportunity to discover the waystone without being trapped in a sequence of encounters.
+Do not disable random encounters globally to make exploration easier.
 
-Do not disable random encounters globally just to make the waystone easier to reach. Prefer a small, testable adjustment to encounter probability or encounter eligibility if necessary.
+### Step 3: Review New-Adventure Initialization
 
-### Step 2: Add or Update Tests
+Confirm that:
 
-Add automated tests for:
+- Starting a new game resets exploration coordinates.
+- Waystone discovery can occur again in a new adventure.
+- Active encounter state is cleared.
+- The previous active adventure party is discarded.
+- The existing character roster is preserved.
+- Previous party selections do not carry over.
+- Returning to the title screen does not unexpectedly reset progress.
+- The selected party becomes the active adventure party.
 
-- Encounter activation.
-- Movement restrictions during an encounter.
-- Fleeing an encounter.
-- Clearing encounter state after fleeing.
-- Resuming exploration after fleeing.
-- Waystone discovery without a random encounter on the same move.
-- Preservation of exploration coordinates.
-- Reproducible encounter behavior using a seeded random-number generator.
+Keep adventure reset logic centralized and testable.
 
-Use deterministic tests rather than relying on the probability of a random outcome.
-
-### Step 3: Verify Code Quality
+### Step 4: Verify Code Quality
 
 Run:
 
@@ -127,167 +235,188 @@ Run:
     mypy src
     git diff --check
 
-Resolve all failures before proceeding.
+Resolve failures before proceeding.
 
-### Step 4: Review, Commit, and Push
+Review the final Git diff before committing any cleanup or code changes.
 
-Inspect the changes:
+## Next Priority: Turn-Based Combat
 
-    git status --short --branch
-    git diff --stat
-    git diff
+Once the final encounter and new-adventure review is complete,
+implement a basic turn-based combat system.
 
-Confirm that the changes are limited to the intended encounter behavior and tests.
+Keep combat rules independent of Pygame rendering so they can be
+tested without simulating the entire game interface.
 
-Commit the completed work and push it to GitHub. Verify that the local branch is synchronized with origin/main.
+### Step 1: Define Combat State
 
-## Next Priority: New Game State Reset
+Introduce a combat model representing an active encounter.
 
-Fix the behavior where selecting New Game can reuse existing game data.
+The model should track:
 
-### Step 1: Define New Game Behavior
+- The party participating in combat.
+- The opposing monsters.
+- Current hit points for each combatant.
+- Whether each combatant is alive or defeated.
+- The current turn or active combatant.
+- Whether combat is active, won, or lost.
+- Combat messages or other information needed by the interface.
 
-Starting a new game should create a fresh adventure rather than silently resuming the previous one.
+Do not modify immutable monster definitions to represent changing
+combat hit points.
 
-Clarify the distinction between:
+Use separate combat state for each monster instance.
 
-- The character roster available for party selection.
-- The active adventure party.
-- The current exploration position.
-- The world event state, including whether the waystone has been discovered.
-- Any future combat, inventory, and progression state.
+Define clearly how party members' current hit points will be stored.
+Avoid unexpectedly resetting character health when creating a combat
+encounter.
 
-Decide which information should persist between adventures and which should be reset.
+Keep the initial implementation small and testable.
 
-For the initial implementation:
+### Step 2: Implement Basic Combat Rules
 
-- Reset the active adventure party.
-- Reset the exploration position to the starting coordinates.
-- Reset exploration event state.
-- Clear any active encounter.
-- Clear stale party selections and setup messages.
-- Ensure the previous adventure cannot continue accidentally after starting a new one.
-
-Character roster persistence can remain a separate decision. If the roster is intended to persist, document that behavior clearly. Do not confuse roster persistence with continuing an old adventure.
-
-### Step 2: Implement a Focused Reset
-
-Introduce a small, explicit new-adventure initialization path.
-
-Prefer a single, testable method responsible for resetting adventure state over scattered assignments throughout screen handlers.
-
-Avoid recreating the entire application or screen manager just to reset the adventure.
-
-### Step 3: Add Regression Tests
-
-Test that:
-
-- Starting a new adventure resets exploration coordinates.
-- The waystone can be discovered again in the new adventure.
-- Active encounter state is cleared.
-- The new adventure party contains only the newly selected members.
-- Stale party selections do not carry over unintentionally.
-- Existing character creation and roster behavior remain correct.
-- Returning to the title screen does not reset state unexpectedly unless that is the intended behavior.
-
-Run the full test suite and code quality checks.
-
-## Following Priority: Turn-Based Combat
-
-Once encounter handling and new-game initialization are stable and committed, implement basic turn-based combat.
-
-### Step 1: Combat Data and Rules
-
-Introduce combat logic independently of Pygame rendering.
+Implement the minimum rules needed for a complete combat encounter.
 
 Initial goals:
 
-- Represent an active combat encounter.
-- Track the party and opposing monsters.
-- Track current hit points during combat.
-- Determine whether combatants are alive or defeated.
-- Calculate basic attack damage.
+- Initialize combat from an exploration encounter.
+- Allow living party members to attack.
+- Allow living monsters to attack.
+- Calculate and apply attack damage.
+- Update hit points after damage.
 - Prevent defeated combatants from taking turns.
+- Determine when all monsters have been defeated.
+- Determine when the party has been defeated.
+- Prevent actions after combat has ended.
+- Handle an empty or unavailable combat party safely.
 
-Keep the initial rules straightforward and testable.
+Keep attack and damage calculations in the combat model rather than
+the rendering code.
 
-### Step 2: Combat State and Screen
+Start with straightforward, deterministic rules. More elaborate
+formulas can be added later.
 
-Introduce a combat state and a combat screen.
+### Step 3: Implement Turn Order
+
+Introduce a simple turn-based action sequence.
+
+Initial goals:
+
+- Determine which combatant acts next.
+- Allow party members to perform their actions.
+- Allow surviving monsters to respond.
+- Skip defeated combatants.
+- Prevent a combatant from acting more than once per turn.
+- Detect victory and defeat immediately when their conditions occur.
+- Prevent additional actions after victory or defeat.
+
+Document the initial turn-order rules so the behavior is predictable
+and easy to test.
+
+### Step 4: Add a Combat Screen
+
+Introduce a combat screen that displays:
+
+- Party members.
+- Opposing monsters.
+- Current hit points.
+- The active combatant or current turn.
+- Combat messages.
+- Available player actions.
+- Victory or defeat messages.
+
+Provide a clear way for the player to select or execute party actions.
+
+Keep the screen focused on displaying state and translating input
+into combat actions. The combat model should remain responsible for
+the game rules.
+
+### Step 5: Integrate Combat with Exploration
+
+Connect encounter generation to the combat system.
 
 Requirements:
 
-- Transition from exploration to combat when an encounter occurs.
-- Preserve the party's exploration position during combat.
-- Display party members and opposing monsters.
-- Display current hit points.
-- Show combat messages.
-- Provide a clear way to select or execute party actions.
-- Prevent additional exploration encounters while combat is active.
+- A random encounter transitions from exploration into combat.
+- The current exploration coordinates are preserved.
+- The active encounter cannot trigger duplicate combat.
+- Exploration movement is unavailable while combat is active.
+- Combat victory returns the player to exploration.
+- Combat defeat produces a clear and consistent outcome.
+- Fleeing remains available and has a clearly defined result.
+- Combat state is cleared when combat ends.
+- Starting a new adventure clears any remaining combat state.
 
-Keep combat state separate from the exploration screen wherever practical.
+Prefer explicit screen transitions and state ownership over scattered
+assignments in event handlers.
 
-### Step 3: Turn Order and Attacks
+Do not allow the exploration screen and combat screen to maintain
+conflicting versions of the same active encounter.
 
-Implement a simple turn-based combat loop.
-
-Initial goals:
-
-- Allow party members to attack.
-- Allow living monsters to attack.
-- Apply damage and update hit points.
-- Skip defeated combatants.
-- Detect victory and defeat.
-- Prevent actions after combat has ended.
-- Provide a clear way to return to exploration after combat.
-
-Fleeing from an encounter should remain supported, with its behavior integrated consistently into the combat system.
-
-Defer spells, status effects, advanced monster behavior, and complicated combat formulas.
-
-### Step 4: Combat Tests
+### Step 6: Add Combat Tests
 
 Add automated tests covering:
 
 - Combat initialization.
+- Combatant hit points.
 - Attack and damage calculations.
-- Hit-point changes.
+- Damage application.
 - Defeated combatants.
-- Turn handling.
-- Victory and defeat conditions.
+- Turn order.
+- Skipping defeated combatants.
+- Victory conditions.
+- Defeat conditions.
+- Prevention of actions after combat ends.
 - Exploration-to-combat transitions.
 - Prevention of duplicate encounters during combat.
 - Return to exploration after victory.
 - Fleeing from combat.
-- Correct preservation of exploration state.
+- Preservation of exploration coordinates.
+- Clearing combat state after a new adventure begins.
 
-Use deterministic tests wherever randomness is involved.
+Use deterministic tests for combat rules.
 
-### Step 5: Integration and Verification
+Test the combat model independently of the Pygame screen before
+testing integration.
 
-Before considering combat complete:
+### Step 7: Verify and Commit
+
+Before considering basic combat complete:
 
 - Run the complete pytest suite.
-- Run Ruff linting and formatting checks.
+- Run Ruff linting.
+- Run Ruff formatting checks.
 - Run Mypy.
 - Run git diff --check.
 - Launch the game and test combat manually.
-- Commit and push the completed feature.
+- Review the Git diff.
+- Commit the completed feature.
+- Push the commit to GitHub.
+- Update this document to reflect the verified implementation.
 
-## Following Feature: Experience and Character Progression
+Do not begin advanced combat mechanics until the basic combat loop
+works reliably.
 
-After basic combat is functional:
+## Following Priority: Experience and Character Progression
+
+After basic combat is functional, implement experience and character
+advancement.
+
+Initial goals:
 
 - Award experience for defeating monsters.
 - Track experience for individual characters.
+- Define how experience is distributed among party members.
 - Introduce character advancement.
 - Increase character statistics or hit points when appropriate.
 - Display victory and advancement messages.
-- Define how experience rewards are distributed among party members.
+- Prevent duplicate rewards for the same encounter.
 
 Keep progression rules consistent with the existing character model.
 
-## Following Feature: Inventory and Equipment
+Add tests for experience awards, distribution, advancement thresholds,
+and changes to character statistics.
+
+## Following Priority: Inventory and Equipment
 
 Introduce basic inventory and equipment management.
 
@@ -302,9 +431,13 @@ Initial goals:
 
 Keep the initial item system small and extensible.
 
-## Following Feature: Saving and Loading
+Add tests for item ownership, equipment changes, and the effects of
+equipment on combat.
 
-Implement persistent game saves after the core gameplay loop is established.
+## Following Priority: Saving and Loading
+
+Implement persistent game saves after the core gameplay loop is
+established.
 
 Save data should eventually include:
 
@@ -317,11 +450,21 @@ Save data should eventually include:
 - World and event state.
 - Any additional state required to resume an adventure accurately.
 
-Use a versioned save format where practical so future changes can be handled safely.
+Use a versioned save format where practical so future changes can be
+handled safely.
 
-Add tests for saving, loading, invalid data, and incompatible save formats.
+Add tests for:
 
-The Continue menu option should be implemented alongside or after the save system.
+- Saving a game.
+- Loading a saved game.
+- Restoring party membership and order.
+- Restoring exploration position.
+- Restoring character progression and inventory.
+- Invalid or incomplete save data.
+- Incompatible save formats.
+- Missing save files.
+
+Implement the Continue menu option alongside or after the save system.
 
 ## Longer-Term Ideas
 
@@ -341,17 +484,18 @@ Potential future features include:
 - Improved graphics, animation, and sound.
 - Additional game settings.
 
-Prioritize these features after the core exploration, combat, progression, and saving systems are working.
+Prioritize these features after exploration, combat, progression,
+inventory, and saving are working reliably.
 
 ## Current Priority Order
 
-1. Stabilize random encounter handling and fleeing.
-2. Commit and push the encounter work.
-3. Fix new-game initialization and state reset behavior.
-4. Commit and push the new-game fix.
-5. Implement basic turn-based combat.
-6. Implement experience and character progression.
-7. Add inventory and equipment.
-8. Implement saving and loading.
-
-Complete and test each feature before moving to the next.
+1. Review encounter integration and new-adventure initialization.
+2. Review and resolve the tracked backup files.
+3. Implement the combat model and basic combat rules.
+4. Implement turn order and combat actions.
+5. Integrate combat with exploration and screen transitions.
+6. Add combat regression tests and complete verification.
+7. Implement experience and character progression.
+8. Add inventory and equipment.
+9. Implement saving and loading.
+10. Expand the world and add further gameplay features.
