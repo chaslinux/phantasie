@@ -11,6 +11,8 @@ from phantasie.screens.party import PartyScreen
 from phantasie.screens.placeholder import PlaceholderScreen
 from phantasie.screens.title import TitleScreen
 from phantasie.world import ExplorationMap, ExplorationState
+from phantasie.combat import Combat
+from phantasie.screens.combat import CombatScreen
 
 
 class Game:
@@ -88,13 +90,19 @@ class Game:
             PartyScreen(self.party),
         )
 
+        self.combat_screen = CombatScreen()
+        self.screen_manager.register("combat", self.combat_screen)
+
+        self.exploration_screen = ExplorationScreen(
+            world=self.exploration_map,
+            state=self.exploration_state,
+            party_provider=lambda: self.adventure_party,
+            on_encounter=self._start_combat,
+        )
+
         self.screen_manager.register(
             "adventure",
-            ExplorationScreen(
-                world=self.exploration_map,
-                state=self.exploration_state,
-                party_provider=lambda: self.adventure_party,
-            ),
+            self.exploration_screen,
         )
 
         self.screen_manager.register(
@@ -180,6 +188,20 @@ class Game:
         self.character = character
         self.party.add_member(character)
         self.title_screen.menu.status_message = f"Created {character.name}!"
+
+    def _start_combat(self, monster: object) -> None:
+        """Start combat when exploration triggers a monster encounter."""
+        if self.adventure_party.member_count == 0:
+            self.exploration_screen.message = "YOU NEED A PARTY TO FIGHT!"
+            self.exploration_screen.active_encounter = None
+            return
+
+        combat = Combat(self.adventure_party, (monster,))
+        self.combat_screen.start_combat(combat)
+
+        self.exploration_screen.active_encounter = None
+        self.exploration_screen.message = "A BATTLE BEGINS!"
+        self.exploration_screen.next_screen = "combat"
 
     def _start_adventure(
         self,

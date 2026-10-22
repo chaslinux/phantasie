@@ -9,6 +9,7 @@ from phantasie.characters.models import Party
 from phantasie.encounters import EncounterGenerator, Monster
 from phantasie.screens.base import BaseScreen
 from phantasie.world import ExplorationMap, ExplorationState, MoveResult
+from phantasie.combat import Combat, CombatStatus
 
 
 class ExplorationScreen(BaseScreen):
@@ -24,12 +25,14 @@ class ExplorationScreen(BaseScreen):
         state: ExplorationState,
         party_provider: Callable[[], Party],
         encounter_generator: EncounterGenerator | None = None,
+        on_encounter: Callable[[Monster], None] | None = None,
     ) -> None:
         """Initialize exploration with persistent world state."""
         super().__init__()
         self.world = world
         self.state = state
         self.party_provider = party_provider
+        self.on_encounter = on_encounter
         self.encounter_generator = (
             encounter_generator
             if encounter_generator is not None
@@ -38,6 +41,7 @@ class ExplorationScreen(BaseScreen):
         if not self.world.is_walkable(self.state.x, self.state.y):
             raise ValueError("The exploration starting position must be walkable.")
         self.active_encounter: Monster | None = None
+        self.active_combat: Combat | None = None
         self.message = "EXPLORE THE AREA."
         self.title_font = pygame.font.Font(None, 24)
         self.font = pygame.font.Font(None, 16)
@@ -93,6 +97,9 @@ class ExplorationScreen(BaseScreen):
             else:
                 self.active_encounter = monster
                 self.message = f"A WILD {monster.name.upper()} APPEARS!"
+
+                if self.on_encounter is not None:
+                    self.on_encounter(monster)
 
     def update(self, dt: float) -> None:
         """Update exploration state."""
