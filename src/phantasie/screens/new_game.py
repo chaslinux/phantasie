@@ -78,6 +78,12 @@ class NewGameScreen(BaseScreen):
         self.on_start(ordered_members)
         self.next_screen = "adventure"
 
+    def reset_selection(self) -> None:
+        """Clear selections when a fresh game is started."""
+        self.selected_index = 0
+        self.selected_members.clear()
+        self.message = ""
+
     def update(self, dt: float) -> None:
         """Update adventure setup."""
         _ = dt

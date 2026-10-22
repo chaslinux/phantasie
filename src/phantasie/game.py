@@ -53,7 +53,7 @@ class Game:
         # Register the available screens.
         self.screen_manager = ScreenManager()
 
-        self.title_screen = TitleScreen()
+        self.title_screen = TitleScreen(on_new_game=self._reset_adventure)
 
         self.screen_manager.register(
             "title",
@@ -160,6 +160,20 @@ class Game:
                 self.render()
         finally:
             pygame.quit()
+
+    def _reset_adventure(self) -> None:
+        """Reset adventure progress before starting a new game."""
+        self.exploration_state.x = 1
+        self.exploration_state.y = 1
+        self.exploration_state.event_seen = False
+        self.adventure_party = Party()
+        adventure = self.screen_manager.screens["adventure"]
+        if isinstance(adventure, ExplorationScreen):
+            adventure.active_encounter = None
+            adventure.message = "EXPLORE THE AREA."
+        new_game = self.screen_manager.screens["new_game"]
+        if isinstance(new_game, NewGameScreen):
+            new_game.reset_selection()
 
     def _accept_character(self, character: Character) -> None:
         """Add a confirmed character to the roster."""

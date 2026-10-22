@@ -6,7 +6,7 @@ import pygame
 
 from phantasie import palette
 from phantasie.characters.models import Party
-from phantasie.encounters import EncounterGenerator
+from phantasie.encounters import EncounterGenerator, Monster
 from phantasie.screens.base import BaseScreen
 from phantasie.world import ExplorationMap, ExplorationState, MoveResult
 
@@ -37,6 +37,7 @@ class ExplorationScreen(BaseScreen):
         )
         if not self.world.is_walkable(self.state.x, self.state.y):
             raise ValueError("The exploration starting position must be walkable.")
+        self.active_encounter: Monster | None = None
         self.message = "EXPLORE THE AREA."
         self.title_font = pygame.font.Font(None, 24)
         self.font = pygame.font.Font(None, 16)
@@ -67,6 +68,15 @@ class ExplorationScreen(BaseScreen):
 
         direction = movement.get(event.key)
 
+        if self.active_encounter is not None:
+            if event.key == pygame.K_f:
+                self.active_encounter = None
+                self.message = "YOU FLEE FROM THE ENCOUNTER."
+                return
+            if direction is not None:
+                self.message = "PRESS F TO FLEE THE ENCOUNTER."
+            return
+
         if direction is None:
             return
 
@@ -81,6 +91,7 @@ class ExplorationScreen(BaseScreen):
             if monster is None:
                 self.message = ""
             else:
+                self.active_encounter = monster
                 self.message = f"A WILD {monster.name.upper()} APPEARS!"
 
     def update(self, dt: float) -> None:

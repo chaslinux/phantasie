@@ -1,6 +1,9 @@
 """Tests for exploration controls, rendering, and game integration."""
 
 import os
+import random
+
+from phantasie.encounters import EncounterGenerator
 
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
@@ -211,3 +214,52 @@ def test_waystone_event_does_not_check_for_random_encounters(
     press_key(screen, pygame.K_RIGHT)
 
     assert screen.message == "YOU DISCOVER AN OLD WAYSTONE."
+
+
+def test_successful_movement_stores_active_encounter(
+    pygame_ready,
+    party: Party,
+) -> None:
+    screen = ExplorationScreen(
+        ExplorationMap(),
+        ExplorationState(),
+        lambda: party,
+        EncounterGenerator(
+            encounter_chance=1.0,
+            rng=random.Random(42),
+        ),
+    )
+
+    press_key(screen, pygame.K_RIGHT)
+
+    assert screen.active_encounter is not None
+    assert screen.message == (f"A WILD {screen.active_encounter.name.upper()} APPEARS!")
+    assert (screen.state.x, screen.state.y) == (2, 1)
+
+
+def test_active_encounter_prevents_further_movement(
+    pygame_ready,
+    party: Party,
+) -> None:
+    screen = ExplorationScreen(
+        ExplorationMap(),
+        ExplorationState(),
+        lambda: party,
+        EncounterGenerator(
+            encounter_chance=1.0,
+            rng=random.Random(42),
+        ),
+    )
+
+    press_key(screen, pygame.K_RIGHT)
+
+    encounter = screen.active_encounter
+    position = (screen.state.x, screen.state.y)
+
+    assert encounter is not None
+
+    press_key(screen, pygame.K_DOWN)
+
+    assert screen.active_encounter is encounter
+    assert (screen.state.x, screen.state.y) == position
+    assert screen.message == "PRESS F TO FLEE THE ENCOUNTER."

@@ -9,10 +9,11 @@ from phantasie.screens.base import BaseScreen
 class TitleScreen(BaseScreen):
     """Handle title screen input, updates, and rendering."""
 
-    def __init__(self) -> None:
+    def __init__(self, on_new_game=None) -> None:
         """Initialize the title screen."""
         super().__init__()
         self.menu = TitleMenu()
+        self.on_new_game = on_new_game
 
     def handle_event(self, event: pygame.event.Event) -> None:
         """Handle title screen input."""
@@ -38,6 +39,8 @@ class TitleScreen(BaseScreen):
                 "character_creation",
             ):
                 self.menu.status_message = ""
+                if action == "new_game" and self.on_new_game is not None:
+                    self.on_new_game()
                 self.next_screen = action
 
             elif action == "continue":
