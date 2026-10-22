@@ -263,3 +263,87 @@ def test_active_encounter_prevents_further_movement(
     assert screen.active_encounter is encounter
     assert (screen.state.x, screen.state.y) == position
     assert screen.message == "PRESS F TO FLEE THE ENCOUNTER."
+
+
+def test_fleeing_clears_active_encounter_and_preserves_position(
+    pygame_ready,
+    party: Party,
+) -> None:
+    screen = ExplorationScreen(
+        ExplorationMap(),
+        ExplorationState(),
+        lambda: party,
+        EncounterGenerator(
+            encounter_chance=1.0,
+            rng=random.Random(42),
+        ),
+    )
+
+    press_key(screen, pygame.K_RIGHT)
+
+    assert screen.active_encounter is not None
+    position = (screen.state.x, screen.state.y)
+
+    press_key(screen, pygame.K_f)
+
+    assert screen.active_encounter is None
+    assert (screen.state.x, screen.state.y) == position
+    assert screen.message == "YOU FLEE FROM THE ENCOUNTER."
+
+
+def test_exploration_resumes_after_fleeing(
+    pygame_ready,
+    party: Party,
+) -> None:
+    screen = ExplorationScreen(
+        ExplorationMap(),
+        ExplorationState(),
+        lambda: party,
+        EncounterGenerator(
+            encounter_chance=1.0,
+            rng=random.Random(42),
+        ),
+    )
+
+    press_key(screen, pygame.K_RIGHT)
+    assert screen.active_encounter is not None
+
+    press_key(screen, pygame.K_f)
+    assert screen.active_encounter is None
+
+    position_before_move = (screen.state.x, screen.state.y)
+
+    press_key(screen, pygame.K_DOWN)
+
+    assert (screen.state.x, screen.state.y) == (
+        position_before_move[0],
+        position_before_move[1] + 1,
+    )
+    assert screen.active_encounter is not None
+
+
+def test_fleeing_does_not_consume_an_extra_movement(
+    pygame_ready,
+    party: Party,
+) -> None:
+    screen = ExplorationScreen(
+        ExplorationMap(),
+        ExplorationState(),
+        lambda: party,
+        EncounterGenerator(
+            encounter_chance=1.0,
+            rng=random.Random(42),
+        ),
+    )
+
+    press_key(screen, pygame.K_RIGHT)
+
+    position = (screen.state.x, screen.state.y)
+    encounter = screen.active_encounter
+
+    assert encounter is not None
+
+    press_key(screen, pygame.K_f)
+
+    assert (screen.state.x, screen.state.y) == position
+    assert screen.active_encounter is None
