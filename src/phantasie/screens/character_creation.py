@@ -136,9 +136,6 @@ class CharacterCreationScreen(BaseScreen):
             if event.key == pygame.K_BACKSPACE:
                 self.name = self.name[:-1]
                 self.message = ""
-            elif event.key == pygame.K_r:
-                self.attributes = self._generate_attributes()
-                self.message = ""
             elif event.key == pygame.K_RETURN:
                 self._confirm()
             return
