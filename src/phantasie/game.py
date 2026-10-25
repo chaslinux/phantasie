@@ -121,11 +121,31 @@ class Game:
 
     def handle_events(self) -> None:
         """Process Pygame events."""
-        for event in pygame.event.get():
+        events = pygame.event.get()
+        ignore_textinput: str | None = None
+
+        for event in events:
+            if event.type == pygame.TEXTINPUT and ignore_textinput is not None:
+                if event.text.casefold() == ignore_textinput.casefold():
+                    ignore_textinput = None
+                    continue
+
+                ignore_textinput = None
+
             if event.type == pygame.QUIT:
                 self.running = False
             else:
+                previous_screen = self.screen_manager.current_screen_name
                 self.screen_manager.handle_event(event)
+                current_screen = self.screen_manager.current_screen_name
+
+                if (
+                    event.type == pygame.KEYDOWN
+                    and previous_screen != current_screen
+                ):
+                    typed_character = getattr(event, "unicode", "")
+                    if typed_character and typed_character.isprintable():
+                        ignore_textinput = typed_character
 
             if self.screen_manager.quit_requested:
                 self.running = False

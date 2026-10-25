@@ -45,6 +45,15 @@ class CharacterCreationScreen(BaseScreen):
 
         self.message = ""
 
+    def on_enter(self) -> None:
+        """Reset the form when starting a new character creation session."""
+        self.name = ""
+        self.race_index = 0
+        self.profession_index = 0
+        self.field_index = 0
+        self.attributes = self._generate_attributes()
+        self.message = ""
+
     @property
     def selected_race(self) -> Race:
         """Return the selected race."""
