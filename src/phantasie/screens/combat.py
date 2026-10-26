@@ -1,14 +1,15 @@
+
 """Turn-based combat screen."""
 
 import pygame
 
 from phantasie import palette
-from phantasie.combat import Combat, CombatStatus, Combatant
+from phantasie.combat import Combat, CombatStatus
 from phantasie.screens.base import BaseScreen
 
 
 class CombatScreen(BaseScreen):
-    """Display and manage a turn-based combat encounter."""
+    """Display combat and manage party actions and monster turns."""
 
     def __init__(self) -> None:
         """Initialize the screen without an active encounter."""
@@ -18,6 +19,8 @@ class CombatScreen(BaseScreen):
         self.selected_member = 0
         self.selected_monster = 0
         self.message = "A BATTLE BEGINS!"
+
+        # Keep a reference to the model's defensive-state set.
         self.defending: set[int] = set()
 
         self.title_font = pygame.font.Font(None, 24)
@@ -25,11 +28,11 @@ class CombatScreen(BaseScreen):
         self.small_font = pygame.font.Font(None, 12)
 
     def start_combat(self, combat: Combat) -> None:
-        """Start a new encounter."""
+        """Start a new encounter and reset screen selections."""
         self.combat = combat
         self.selected_member = 0
         self.selected_monster = 0
-        self.defending.clear()
+        self.defending = combat.defending
         self.message = "CHOOSE YOUR ACTION."
         self.next_screen = None
 
@@ -70,32 +73,56 @@ class CombatScreen(BaseScreen):
         elif event.key == pygame.K_SPACE:
             self._defend()
 
+    # ------------------------------------------------------------------
+    # Party selection: only living members who have not acted this round
+    # may be selected. Monster selection skips defeated monsters.
+    # ------------------------------------------------------------------
+
     def _select_member(self, direction: int) -> None:
-        """Select a living party member."""
+        """Select a living party member who has not acted this round."""
         assert self.combat is not None
 
         members = self.combat.party
+
         for offset in range(1, len(members) + 1):
-            index = (self.selected_member + direction * offset) % len(members)
-            if members[index].is_alive:
+            index = (
+                self.selected_member + direction * offset
+            ) % len(members)
+
+            if (
+                members[index].is_alive
+                and index not in self.combat.acted_members
+            ):
                 self.selected_member = index
-                self.message = f"{members[index].name}'S TURN."
+                self.message = f"{members[index].name.upper()}'S TURN."
                 return
+
+        self.message = "NO OTHER PARTY MEMBERS READY."
 
     def _select_monster(self, direction: int) -> None:
         """Select a living monster."""
         assert self.combat is not None
 
         monsters = self.combat.monsters
+
         for offset in range(1, len(monsters) + 1):
-            index = (self.selected_monster + direction * offset) % len(monsters)
+            index = (
+                self.selected_monster + direction * offset
+            ) % len(monsters)
+
             if monsters[index].is_alive:
                 self.selected_monster = index
-                self.message = f"TARGET: {monsters[index].name.upper()}."
+                self.message = (
+                    f"TARGET: {monsters[index].name.upper()}."
+                )
                 return
 
+    # ------------------------------------------------------------------
+    # Party actions: attack or defend, then advance the turn.
+    # ------------------------------------------------------------------
+
     def _attack(self) -> None:
-        """Attack the selected monster and resolve enemy turns."""
+        """Attack the selected monster and advance the party turn."""
         assert self.combat is not None
 
         members = self.combat.party
@@ -105,10 +132,16 @@ class CombatScreen(BaseScreen):
             self.message = "SELECT A LIVING PARTY MEMBER."
             return
 
+        if self.selected_member in self.combat.acted_members:
+            self.message = "THIS MEMBER HAS ALREADY ACTED."
+            return
+
         living_monsters = [
-            index for index, monster in enumerate(monsters)
+            index
+            for index, monster in enumerate(monsters)
             if monster.is_alive
         ]
+
         if not living_monsters:
             return
 
@@ -118,66 +151,106 @@ class CombatScreen(BaseScreen):
         attacker = members[self.selected_member]
         target = monsters[self.selected_monster]
 
-        damage = self.combat.attack(attacker, target)
+        damage = self.combat.member_attack(
+            self.selected_member,
+            self.selected_monster,
+        )
+
         self.message = (
             f"{attacker.name.upper()} DEALS {damage} DAMAGE!"
         )
 
+        # Victory ends the encounter immediately. No monster retaliation.
         if self.combat.status is not CombatStatus.ACTIVE:
             return
 
-        for index, monster in enumerate(monsters):
-            if not monster.is_alive:
-                continue
-
-            defender_index = self.selected_member
-            defender = members[defender_index]
-
-            if not defender.is_alive:
-                living_member_indices = [
-                    member_index
-                    for member_index, member in enumerate(members)
-                    if member.is_alive
-                ]
-                if not living_member_indices:
-                    self.combat._update_status()
-                    return
-
-                defender_index = living_member_indices[0]
-                defender = members[defender_index]
-
-            damage_reduction = (
-                2 if defender_index in self.defending else 0
-            )
-            self.combat.attack(
-                monster,
-                defender,
-                damage_reduction=damage_reduction,
-            )
-
-            self.message = (
-                f"{monster.name.upper()} ATTACKS "
-                f"{defender.name.upper()}!"
-            )
-
-            if self.combat.status is not CombatStatus.ACTIVE:
-                return
-
-        self.defending.clear()
+        self._finish_party_action()
 
     def _defend(self) -> None:
-        """Mark the selected member as defending."""
+        """Defend with the selected member and advance the party turn."""
         assert self.combat is not None
 
         if not self.combat.party[self.selected_member].is_alive:
             self.message = "SELECT A LIVING PARTY MEMBER."
             return
 
-        self.defending.add(self.selected_member)
+        if self.selected_member in self.combat.acted_members:
+            self.message = "THIS MEMBER HAS ALREADY ACTED."
+            return
+
+        member = self.combat.party[self.selected_member]
+
+        self.combat.member_defend(self.selected_member)
+
         self.message = (
-            f"{self.combat.party[self.selected_member].name.upper()} "
-            "TAKES A DEFENSIVE STANCE."
+            f"{member.name.upper()} TAKES A DEFENSIVE STANCE."
         )
+
+        self._finish_party_action()
+
+    def _finish_party_action(self) -> None:
+        """Advance to the next party member or resolve the monster phase."""
+        assert self.combat is not None
+
+        if self.combat.status is not CombatStatus.ACTIVE:
+            return
+
+        if not self.combat.party_phase_complete:
+            # Automatically select the next living member who is ready.
+            previous_message = self.message
+
+            for index, member in enumerate(self.combat.party):
+                if (
+                    member.is_alive
+                    and index not in self.combat.acted_members
+                ):
+                    self.selected_member = index
+                    self.message = (
+                        f"{previous_message} NEXT: {member.name.upper()}."
+                    )
+                    return
+
+        # Every living party member has acted. Surviving monsters retaliate.
+        previous_hp = [
+            member.hit_points for member in self.combat.party
+        ]
+
+        self.combat.resolve_monster_phase()
+
+        losses = [
+            (
+                member.name,
+                previous_hp[index] - member.hit_points,
+            )
+            for index, member in enumerate(self.combat.party)
+            if previous_hp[index] > member.hit_points
+        ]
+
+        if self.combat.status is not CombatStatus.ACTIVE:
+            if self.combat.status is CombatStatus.DEFEAT:
+                self.message = "THE PARTY HAS BEEN DEFEATED!"
+            return
+
+        if len(losses) == 1:
+            name, damage = losses[0]
+            self.message = f"{name.upper()} TAKES {damage} DAMAGE!"
+        elif losses:
+            self.message = "MONSTERS DAMAGE THE PARTY!"
+        else:
+            self.message = (
+                f"ROUND {self.combat.round_number}: CHOOSE ACTION."
+            )
+
+        # The model has started the next round and cleared temporary states.
+        self.selected_member = next(
+            index
+            for index, member in enumerate(self.combat.party)
+            if member.is_alive
+        )
+
+    # ------------------------------------------------------------------
+    # Rendering helpers and display.
+    # ------------------------------------------------------------------
 
     def update(self, dt: float) -> None:
         """Update combat."""
@@ -193,45 +266,89 @@ class CombatScreen(BaseScreen):
     ) -> None:
         """Draw text."""
         active_font = font or self.font
-        surface.blit(active_font.render(text, True, color), position)
+        surface.blit(
+            active_font.render(text, True, color),
+            position,
+        )
 
     def render(self, surface: pygame.Surface) -> None:
-        """Render combatants and available actions."""
+        """Render combatants, round information, and available actions."""
         surface.fill(palette.BACKGROUND)
 
         self._draw_text(
-            surface, "COMBAT", (12, 10), palette.HIGHLIGHT,
+            surface,
+            "COMBAT",
+            (12, 10),
+            palette.HIGHLIGHT,
             self.title_font,
         )
 
         if self.combat is None:
             self._draw_text(
-                surface, "NO ACTIVE ENCOUNTER.", (12, 40), palette.TEXT,
+                surface,
+                "NO ACTIVE ENCOUNTER.",
+                (12, 40),
+                palette.TEXT,
             )
             return
 
         self._draw_text(
-            surface, "PARTY", (12, 38), palette.HIGHLIGHT,
+            surface,
+            f"ROUND {self.combat.round_number}",
+            (230, 12),
+            palette.TEXT,
+            self.small_font,
+        )
+
+        self._draw_text(
+            surface,
+            "PARTY",
+            (12, 38),
+            palette.HIGHLIGHT,
         )
 
         for index, member in enumerate(self.combat.party):
-            marker = ">" if index == self.selected_member else " "
-            color = palette.TEXT if member.is_alive else palette.TEXT_MUTED
+            if not member.is_alive:
+                marker = "X"
+                color = palette.TEXT_MUTED
+            elif index == self.selected_member:
+                marker = ">"
+                color = palette.TEXT
+            elif index in self.combat.acted_members:
+                marker = "*"
+                color = palette.TEXT_MUTED
+            else:
+                marker = " "
+                color = palette.TEXT
+
+            defense_marker = " D" if index in self.defending else ""
+
             self._draw_text(
                 surface,
-                f"{marker}{member.name} HP:{member.hit_points}",
+                (
+                    f"{marker}{member.name} "
+                    f"HP:{member.hit_points}{defense_marker}"
+                ),
                 (12, 54 + index * 16),
                 color,
                 self.small_font,
             )
 
         self._draw_text(
-            surface, "MONSTERS", (170, 38), palette.HIGHLIGHT,
+            surface,
+            "MONSTERS",
+            (170, 38),
+            palette.HIGHLIGHT,
         )
 
         for index, monster in enumerate(self.combat.monsters):
-            marker = ">" if index == self.selected_monster else " "
-            color = palette.TEXT if monster.is_alive else palette.TEXT_MUTED
+            if not monster.is_alive:
+                marker = "X"
+                color = palette.TEXT_MUTED
+            else:
+                marker = ">" if index == self.selected_monster else " "
+                color = palette.TEXT
+
             self._draw_text(
                 surface,
                 f"{marker}{monster.name} HP:{monster.hit_points}",
@@ -246,9 +363,13 @@ class CombatScreen(BaseScreen):
             self.message = "DEFEAT! PRESS ENTER."
 
         self._draw_text(
-            surface, self.message[:44], (12, 150), palette.HIGHLIGHT,
+            surface,
+            self.message[:44],
+            (12, 150),
+            palette.HIGHLIGHT,
             self.small_font,
         )
+
         self._draw_text(
             surface,
             "ENTER: ATTACK  SPACE: DEFEND  F: FLEE",
