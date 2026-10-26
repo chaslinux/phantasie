@@ -1,10 +1,13 @@
-
 """Turn-based combat screen."""
 
 import pygame
 
 from phantasie import palette
-from phantasie.combat import Combat, CombatStatus
+from phantasie.combat import (
+    Combat,
+    CombatStatus,
+    MonsterAttackResult,
+)
 from phantasie.screens.base import BaseScreen
 
 
@@ -74,8 +77,7 @@ class CombatScreen(BaseScreen):
             self._defend()
 
     # ------------------------------------------------------------------
-    # Party selection: only living members who have not acted this round
-    # may be selected. Monster selection skips defeated monsters.
+    # Party and monster selection.
     # ------------------------------------------------------------------
 
     def _select_member(self, direction: int) -> None:
@@ -118,7 +120,7 @@ class CombatScreen(BaseScreen):
                 return
 
     # ------------------------------------------------------------------
-    # Party actions: attack or defend, then advance the turn.
+    # Party actions.
     # ------------------------------------------------------------------
 
     def _attack(self) -> None:
@@ -156,11 +158,22 @@ class CombatScreen(BaseScreen):
             self.selected_monster,
         )
 
-        self.message = (
-            f"{attacker.name.upper()} DEALS {damage} DAMAGE!"
-        )
+        if not target.is_alive:
+            self.message = (
+                f"{target.name.upper()} FALLS! "
+                f"{attacker.name.upper()} DEALT {damage}."
+            )
+        else:
+            self.message = (
+                f"{attacker.name.upper()} HITS "
+                f"{target.name.upper()} FOR {damage}!"
+            )
 
-        # Victory ends the encounter immediately. No monster retaliation.
+        # Preserve the outcome message and skip monster retaliation.
+        if self.combat.status is CombatStatus.VICTORY:
+            self.message = "VICTORY! PRESS ENTER."
+            return
+
         if self.combat.status is not CombatStatus.ACTIVE:
             return
 
@@ -189,7 +202,7 @@ class CombatScreen(BaseScreen):
         self._finish_party_action()
 
     def _finish_party_action(self) -> None:
-        """Advance to the next party member or resolve the monster phase."""
+        """Advance to the next member or resolve the monster phase."""
         assert self.combat is not None
 
         if self.combat.status is not CombatStatus.ACTIVE:
@@ -197,45 +210,50 @@ class CombatScreen(BaseScreen):
 
         if not self.combat.party_phase_complete:
             # Automatically select the next living member who is ready.
-            previous_message = self.message
-
             for index, member in enumerate(self.combat.party):
                 if (
                     member.is_alive
                     and index not in self.combat.acted_members
                 ):
                     self.selected_member = index
-                    self.message = (
-                        f"{previous_message} NEXT: {member.name.upper()}."
-                    )
                     return
 
-        # Every living party member has acted. Surviving monsters retaliate.
-        previous_hp = [
-            member.hit_points for member in self.combat.party
-        ]
+        # Every living party member has acted. Monsters now retaliate.
+        attacks: list[MonsterAttackResult] = (
+            self.combat.resolve_monster_phase()
+        )
 
-        self.combat.resolve_monster_phase()
+        if self.combat.status is CombatStatus.DEFEAT:
+            final_attack = attacks[-1] if attacks else None
 
-        losses = [
-            (
-                member.name,
-                previous_hp[index] - member.hit_points,
-            )
-            for index, member in enumerate(self.combat.party)
-            if previous_hp[index] > member.hit_points
-        ]
-
-        if self.combat.status is not CombatStatus.ACTIVE:
-            if self.combat.status is CombatStatus.DEFEAT:
+            if final_attack is not None and final_attack.target_defeated:
+                self.message = (
+                    f"{final_attack.target_name.upper()} FALLS! "
+                    "PARTY DEFEATED."
+                )
+            else:
                 self.message = "THE PARTY HAS BEEN DEFEATED!"
             return
 
-        if len(losses) == 1:
-            name, damage = losses[0]
-            self.message = f"{name.upper()} TAKES {damage} DAMAGE!"
-        elif losses:
-            self.message = "MONSTERS DAMAGE THE PARTY!"
+        if self.combat.status is CombatStatus.VICTORY:
+            self.message = "VICTORY! PRESS ENTER."
+            return
+
+        if attacks:
+            # Display the final monster attack of this phase.
+            attack = attacks[-1]
+
+            if attack.target_defeated:
+                self.message = (
+                    f"{attack.monster_name.upper()} HITS "
+                    f"{attack.target_name.upper()} FOR "
+                    f"{attack.damage}! {attack.target_name.upper()} FALLS!"
+                )
+            else:
+                self.message = (
+                    f"{attack.monster_name.upper()} HITS "
+                    f"{attack.target_name.upper()} FOR {attack.damage}!"
+                )
         else:
             self.message = (
                 f"ROUND {self.combat.round_number}: CHOOSE ACTION."
@@ -249,7 +267,7 @@ class CombatScreen(BaseScreen):
         )
 
     # ------------------------------------------------------------------
-    # Rendering helpers and display.
+    # Rendering.
     # ------------------------------------------------------------------
 
     def update(self, dt: float) -> None:
@@ -357,11 +375,7 @@ class CombatScreen(BaseScreen):
                 self.small_font,
             )
 
-        if self.combat.status is CombatStatus.VICTORY:
-            self.message = "VICTORY! PRESS ENTER."
-        elif self.combat.status is CombatStatus.DEFEAT:
-            self.message = "DEFEAT! PRESS ENTER."
-
+        # Terminal messages are set by combat actions, not by rendering.
         self._draw_text(
             surface,
             self.message[:44],
@@ -377,4 +391,3 @@ class CombatScreen(BaseScreen):
             palette.TEXT_MUTED,
             self.small_font,
         )
-

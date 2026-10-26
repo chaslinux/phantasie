@@ -60,6 +60,17 @@ class Combatant:
 
         self.hit_points = max(0, self.hit_points - damage)
 
+
+@dataclass(slots=True)
+class MonsterAttackResult:
+    """Describe one monster's attack during a combat round."""
+
+    monster_name: str
+    target_name: str
+    damage: int
+    target_defeated: bool
+
+
 class Combat:
     """Manage a party fighting a group of monsters."""
 
@@ -190,13 +201,15 @@ class Combat:
         self.acted_members.add(member_index)
         self.defending.add(member_index)
 
-    def resolve_monster_phase(self) -> None:
-        """Let surviving monsters attack before starting the next round."""
+    def resolve_monster_phase(self) -> list[MonsterAttackResult]:
+        """Resolve monster attacks and return their results."""
+        results: list[MonsterAttackResult] = []
+
         if self.status is not CombatStatus.ACTIVE:
-            return
+            return results
 
         if not self.party_phase_complete:
-            return
+            return results
 
         for monster in self.monsters:
             if not monster.is_alive:
@@ -213,14 +226,25 @@ class Combat:
 
             # Target the first living party member.
             target_index = living_members[0]
+            target = self.party[target_index]
+
             damage_reduction = (
                 1 if target_index in self.defending else 0
             )
 
-            self.attack(
+            damage = self.attack(
                 monster,
-                self.party[target_index],
+                target,
                 damage_reduction=damage_reduction,
+            )
+
+            results.append(
+                MonsterAttackResult(
+                    monster_name=monster.name,
+                    target_name=target.name,
+                    damage=damage,
+                    target_defeated=not target.is_alive,
+                )
             )
 
             if self.status is not CombatStatus.ACTIVE:
@@ -232,6 +256,9 @@ class Combat:
 
         if self.status is CombatStatus.ACTIVE:
             self.round_number += 1
+
+        return results
+
     def _update_status(self) -> None:
         """Determine whether either side has been defeated."""
         if not any(monster.is_alive for monster in self.monsters):
