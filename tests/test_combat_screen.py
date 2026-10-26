@@ -237,16 +237,24 @@ def test_non_key_events_are_ignored(screen: CombatScreen) -> None:
     assert screen.message == original_message
     assert screen.next_screen is None
 
-
-def test_defending_reduces_incoming_damage(monster: Monster) -> None:
-    """A defending member should take reduced damage in the monster phase."""
-    screen = make_two_member_screen(monster)
+def test_defending_reduces_incoming_damage(
+    monster: Monster,
+) -> None:
+    """Defending reduces damage from a sufficiently strong monster."""
+    stronger_monster = Monster(
+        name="Ogre",
+        hit_points=20,
+        attack=6,
+        defense=1,
+        experience_reward=25,
+    )
+    screen = make_two_member_screen(stronger_monster)
 
     assert screen.combat is not None
     defender = screen.combat.party[0]
     original_hp = defender.hit_points
 
-    # First member defends. The second member then attacks.
+    # Arin defends; Bryn attacks, completing the party phase.
     screen.handle_event(
         pygame.event.Event(pygame.KEYDOWN, key=pygame.K_SPACE)
     )
@@ -254,11 +262,13 @@ def test_defending_reduces_incoming_damage(monster: Monster) -> None:
         pygame.event.Event(pygame.KEYDOWN, key=pygame.K_RETURN)
     )
 
-    # The first monster target is the defending member.
-    assert defender.hit_points == original_hp
+    damage_taken = original_hp - defender.hit_points
+
+    # The stronger monster should hit, but defense should reduce damage.
+    assert damage_taken > 0
+    assert damage_taken < screen.combat.monsters[0].attack
     assert screen.combat.round_number == 2
     assert screen.combat.defending == set()
-
 
 def test_not_defending_takes_normal_incoming_damage(
     screen: CombatScreen,

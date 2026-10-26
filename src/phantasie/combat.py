@@ -133,7 +133,7 @@ class Combat:
             raise ValueError("Damage reduction cannot be negative.")
 
         damage = max(
-            0,
+            1,
             self.calculate_damage(attacker, defender) - damage_reduction,
         )
         defender.take_damage(damage)
