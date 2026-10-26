@@ -131,14 +131,15 @@ attack, then allows surviving monsters to retaliate.
 
 Decide how party turns should work before expanding the combat rules.
 
-Potential improvements:
-
-- [ ] Allow every living party member to take a turn.
-- [ ] Define the order in which party members and monsters act.
-- [ ] Prevent defeated combatants from taking turns.
-- [ ] Make defending reduce damage for the intended duration.
-- [ ] Clear temporary defensive states at the correct time.
-- [ ] Add tests for multi-member parties and multiple monsters.
+- [x] Allow every living party member to take a turn before monsters retaliate.
+- [x] Track which party members have already acted during the round.
+- [x] Prevent defeated party members from taking turns.
+- [x] Prevent defeated party monsters from retaliating.
+- [x] Make defending reduce damage incoming damage.
+- [x] Clear temporary defensive states at the correct time.
+- [x] Add tests for multi-member parties and turn sequencing.
+- [ ] Add more tests for multiple monsters and edge cases.
+- [ ] Rewview combat turn order and targetting rules.
 
 Keep combat rules in the combat model where practical, rather than
 duplicating game rules in the screen implementation.
@@ -294,9 +295,12 @@ creation input fixes.
   name.
 - Fixed the opening character-creation shortcut appearing in the
   character's name.
-- Verified the fixes manually.
-- Achieved a full test run of 140 passing tests on Linux Mint before
-  the latest character-creation changes.
+- Verified the character-creation fixes manually.
+- Implemented party-wide combat turns before monster retaliation.
+- Added tracking for party members who have acted during a round.
+- Implemented defensive stances with temporary damage reduction.
+- Added combat tests for turn sequencing, defense, victory, and defeat.
+- Achieved a full test run of 142 passing tests.
 
 **Immediate goal:** Verify the current Git state, commit the outstanding
 changes, push when authentication is available, synchronize the

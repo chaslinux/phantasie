@@ -89,6 +89,9 @@ class Combat:
             for monster in monsters
         ]
         self.status = CombatStatus.ACTIVE
+        self.acted_members: set[int] = set()
+        self.defending: set[int] = set()
+        self.round_number = 1
         self._update_status()
 
     @staticmethod
@@ -137,6 +140,98 @@ class Combat:
         self._update_status()
         return damage
 
+    @property
+    def party_phase_complete(self) -> bool:
+        """Return whether every living party member has acted."""
+        return all(
+            not member.is_alive or index in self.acted_members
+            for index, member in enumerate(self.party)
+        )
+
+    def member_attack(
+        self,
+        member_index: int,
+        monster_index: int,
+    ) -> int:
+        """Let a party member attack a monster."""
+        if self.status is not CombatStatus.ACTIVE:
+            raise RuntimeError("Combat has already ended.")
+
+        if not 0 <= member_index < len(self.party):
+            raise IndexError("Invalid party member index.")
+
+        if not 0 <= monster_index < len(self.monsters):
+            raise IndexError("Invalid monster index.")
+
+        if member_index in self.acted_members:
+            raise ValueError("This party member has already acted.")
+
+        damage = self.attack(
+            self.party[member_index],
+            self.monsters[monster_index],
+        )
+        self.acted_members.add(member_index)
+        return damage
+
+    def member_defend(self, member_index: int) -> None:
+        """Let a party member defend for the current round."""
+        if self.status is not CombatStatus.ACTIVE:
+            raise RuntimeError("Combat has already ended.")
+
+        if not 0 <= member_index < len(self.party):
+            raise IndexError("Invalid party member index.")
+
+        if not self.party[member_index].is_alive:
+            raise ValueError("A defeated member cannot defend.")
+
+        if member_index in self.acted_members:
+            raise ValueError("This party member has already acted.")
+
+        self.acted_members.add(member_index)
+        self.defending.add(member_index)
+
+    def resolve_monster_phase(self) -> None:
+        """Let surviving monsters attack before starting the next round."""
+        if self.status is not CombatStatus.ACTIVE:
+            return
+
+        if not self.party_phase_complete:
+            return
+
+        for monster in self.monsters:
+            if not monster.is_alive:
+                continue
+
+            living_members = [
+                index
+                for index, member in enumerate(self.party)
+                if member.is_alive
+            ]
+
+            if not living_members:
+                break
+
+            # Target the first living party member.
+            target_index = living_members[0]
+            damage_reduction = (
+                1 if target_index in self.defending else 0
+            )
+
+            self.attack(
+                monster,
+                self.party[target_index],
+                damage_reduction=damage_reduction,
+            )
+
+            if self.status is not CombatStatus.ACTIVE:
+                break
+
+        # Temporary defensive stances expire after monster retaliation.
+        self.defending.clear()
+        self.acted_members.clear()
+
+        if self.status is CombatStatus.ACTIVE:
+            self.round_number += 1
     def _update_status(self) -> None:
         """Determine whether either side has been defeated."""
         if not any(monster.is_alive for monster in self.monsters):
